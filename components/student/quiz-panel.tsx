@@ -22,10 +22,10 @@ export function QuizPanel({
   const [answers, setAnswers] = useState<(Persona | null)[]>(() =>
     QUIZ.map(() => null),
   );
-  const [result, setResult] = useState<Persona | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const shown = result ?? persona;
+  // me.persona is never cached, so a room reset clears it here too.
+  const shown = persona;
   const complete = answers.every(Boolean);
 
   async function submit(e: React.FormEvent) {
@@ -33,11 +33,10 @@ export function QuizPanel({
     setSending(true);
     setError(null);
     const res = await post<{ persona?: string }>("/api/quiz", { answers });
+    // Stay disabled until the refresh shows the persona from the server.
+    if (res.ok && isPersona(res.data.persona)) await refresh();
     setSending(false);
-    if (res.ok && isPersona(res.data.persona)) {
-      setResult(res.data.persona);
-      await refresh();
-    } else {
+    if (!res.ok || !isPersona(res.data.persona)) {
       setError(errorText(res.data, "Your answers did not go through."));
     }
   }
