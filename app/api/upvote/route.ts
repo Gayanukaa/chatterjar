@@ -1,0 +1,27 @@
+import { VOTE_WEIGHT } from "@/lib/domain";
+import { body, fail, getRid, json, route } from "@/lib/http";
+import { db, k } from "@/lib/redis";
+import { invalidate } from "@/lib/state";
+
+export const POST = route(async (req) => {
+  const rid = getRid(req);
+  if (!rid) return fail("Reload the page and try again.", 400);
+  const { id } = await body(req);
+  if (typeof id !== "string" || !/^q[a-z0-9]+$/.test(id))
+    return fail("Question not found.", 404);
+  const r = db();
+  const q = await r.hmget<Record<string, unknown>>(
+    k(`q:${id}`),
+    "hidden",
+    "by",
+  );
+  if (!q || q.hidden == null || Number(q.hidden) === 1)
+    return fail("Question not found.", 404);
+  if (String(q.by) === rid)
+    return fail("You cannot upvote your own question.", 409);
+  const fresh = await r.sadd(k(`qv:${rid}`), id);
+  if (!fresh) return fail("You already upvoted this question.", 409);
+  await r.zincrby(k("q:rank"), VOTE_WEIGHT, id);
+  invalidate();
+  return json({ ok: true });
+});
