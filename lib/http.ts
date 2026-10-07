@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { RID_PATTERN } from "./domain";
 
 /** JSON response that is never cached. */
 export function json(data: unknown, status = 200) {
@@ -13,7 +14,7 @@ export const fail = (error: string, status: number) => json({ error }, status);
 /** Device id from the rid cookie set in proxy.ts, or null if missing or malformed. */
 export function getRid(req: NextRequest): string | null {
   const rid = req.cookies.get("rid")?.value;
-  return rid && /^[0-9a-f-]{36}$/i.test(rid) ? rid : null;
+  return rid && RID_PATTERN.test(rid) ? rid : null;
 }
 
 export function isAdmin(req: NextRequest): boolean {

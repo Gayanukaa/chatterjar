@@ -7,6 +7,7 @@ import {
   scorePersona,
   validateQuestion,
   votesFromScore,
+  createdAtFromScore,
   type Poll,
 } from "@/lib/domain";
 
@@ -84,12 +85,13 @@ describe("buildPresets", () => {
 });
 
 describe("questions", () => {
-  it("orders by votes, then older first", () => {
+  it("orders by votes, then newer first", () => {
     const older = questionScore(1, 1_000_000);
     const newer = questionScore(1, 2_000_000);
     const top = questionScore(2, 2_000_000);
     expect(top).toBeGreaterThan(older);
-    expect(older).toBeGreaterThan(newer);
+    expect(newer).toBeGreaterThan(older);
+    expect(createdAtFromScore(newer)).toBe(2_000_000);
     expect(votesFromScore(top)).toBe(2);
   });
   it("validates length", () => {

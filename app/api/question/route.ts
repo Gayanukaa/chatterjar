@@ -14,8 +14,11 @@ export const POST = route(async (req) => {
   if (!text) return fail("Write a question of 1 to 200 characters.", 400);
   const r = db();
   const rl = k(`rl:${rid}`);
-  const count = await r.incr(rl);
-  if (count === 1) await r.expire(rl, 60);
+  const [count] = await r
+    .pipeline()
+    .incr(rl)
+    .expire(rl, 60, "NX")
+    .exec<[number, number]>();
   if (count > QUESTIONS_PER_MINUTE) {
     return fail("You can post 3 questions per minute. Try again soon.", 429);
   }
@@ -23,7 +26,8 @@ export const POST = route(async (req) => {
   const id = `q${createdAt.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   await r
     .pipeline()
-    .hset(k(`q:${id}`), { text, createdAt, hidden: 0, by: rid })
+    .hset(k("q:text"), { [id]: text })
+    .hset(k(`q:${id}`), { hidden: 0, by: rid })
     .zadd(k("q:rank"), { score: questionScore(0, createdAt), member: id })
     .exec();
   invalidate();
