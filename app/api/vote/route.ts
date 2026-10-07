@@ -1,7 +1,6 @@
 import type { Poll } from "@/lib/domain";
 import { body, fail, getRid, json, route } from "@/lib/http";
 import { db, k } from "@/lib/redis";
-import { invalidate } from "@/lib/state";
 
 export const POST = route(async (req) => {
   const rid = getRid(req);
@@ -24,6 +23,5 @@ export const POST = route(async (req) => {
   const fresh = await r.hsetnx(k(`poll:${pollId}:voters`), rid, option);
   if (!fresh) return fail("You already voted in this poll.", 409);
   await r.hincrby(k(`poll:${pollId}:votes`), option, 1);
-  invalidate();
   return json({ ok: true, vote: option });
 });

@@ -1,7 +1,6 @@
 import { VOTE_WEIGHT } from "@/lib/domain";
 import { body, fail, getRid, json, route } from "@/lib/http";
 import { db, k } from "@/lib/redis";
-import { invalidate } from "@/lib/state";
 
 export const POST = route(async (req) => {
   const rid = getRid(req);
@@ -21,7 +20,11 @@ export const POST = route(async (req) => {
     return fail("You cannot upvote your own question.", 409);
   const fresh = await r.sadd(k(`qv:${rid}`), id);
   if (!fresh) return fail("You already upvoted this question.", 409);
-  await r.zincrby(k("q:rank"), VOTE_WEIGHT, id);
-  invalidate();
+  // xx: never re-adds a question that was hidden after the check above.
+  await r.zadd(
+    k("q:rank"),
+    { xx: true, incr: true },
+    { score: VOTE_WEIGHT, member: id },
+  );
   return json({ ok: true });
 });

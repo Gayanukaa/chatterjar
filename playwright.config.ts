@@ -1,18 +1,34 @@
-import { defineConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.BASE_URL ?? "http://localhost:3000";
+// A BASE_URL means a deployed target, so no local server is started.
+const remote = process.env.BASE_URL;
+const baseURL = remote ?? "http://localhost:3100";
+
+// Workers inherit this env, so specs read the same admin key.
+const adminKey = process.env.E2E_ADMIN_KEY ?? "e2e-key";
+process.env.E2E_ADMIN_KEY = adminKey;
 
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
+  expect: { timeout: 10_000 },
+  // Tests share one Redis prefix and one active poll, so run them in order.
+  workers: 1,
+  fullyParallel: false,
+  retries: 0,
   use: { baseURL },
-  // A BASE_URL means a deployed target, so no local server is needed.
-  webServer: process.env.BASE_URL
+  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  webServer: remote
     ? undefined
     : {
-        command: "npm run dev",
+        command: "npx next dev -p 3100",
         url: baseURL,
-        reuseExistingServer: true,
+        reuseExistingServer: false,
         timeout: 120_000,
+        env: {
+          ...(process.env as Record<string, string>),
+          REDIS_PREFIX: "e2e:",
+          ADMIN_KEY: adminKey,
+        },
       },
 });

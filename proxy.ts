@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { RID_PATTERN } from "@/lib/domain";
 
 const YEAR_S = 60 * 60 * 24 * 365;
 
 /** Gives every visitor an anonymous rid device cookie (random UUID, 1 year). */
 export function proxy(req: NextRequest) {
-  if (req.cookies.get("rid")) return NextResponse.next();
+  if (RID_PATTERN.test(req.cookies.get("rid")?.value ?? "")) {
+    return NextResponse.next();
+  }
   const rid = crypto.randomUUID();
   // Set it on the request too, so the first API call already has a device id.
   req.cookies.set("rid", rid);

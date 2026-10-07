@@ -71,8 +71,9 @@ export interface Round {
 export const MAX_QUESTION = 200;
 export const QUESTIONS_PER_MINUTE = 3;
 export const OPTION_KEYS = ["A", "B", "C", "D"];
-// Upvotes add VOTE_WEIGHT; low digits order ties by age in ms (exact to ~900).
+// Upvotes add VOTE_WEIGHT; low digits hold createdAt ms, newest wins ties.
 export const VOTE_WEIGHT = 1e13;
+export const RID_PATTERN = /^[0-9a-f-]{36}$/i;
 
 export const isPersona = (v: unknown): v is Persona =>
   PERSONAS.includes(v as Persona);
@@ -101,7 +102,6 @@ export function publicPoll(
     id: poll.id,
     question: poll.question,
     detail: poll.detail,
-    source: poll.source,
     options: poll.options,
     status: poll.status,
     createdAt: poll.createdAt,
@@ -111,16 +111,17 @@ export function publicPoll(
   const results = Object.fromEntries(
     poll.options.map((o) => [o.key, Number(votes[o.key] ?? 0)]),
   );
-  return { ...base, correct: poll.correct, results };
+  return { ...base, correct: poll.correct, source: poll.source, results };
 }
 
-/** Sorted-set score: votes first, then older questions first. */
+/** Sorted-set score: votes first, then newer questions first so new ones show. */
 export function questionScore(votes: number, createdAt: number): number {
-  return votes * VOTE_WEIGHT + (VOTE_WEIGHT - createdAt);
+  return votes * VOTE_WEIGHT + createdAt;
 }
 
 export const votesFromScore = (score: number) =>
   Math.floor(score / VOTE_WEIGHT);
+export const createdAtFromScore = (score: number) => score % VOTE_WEIGHT;
 
 /** Trimmed question text, or null if empty or over MAX_QUESTION chars. */
 export function validateQuestion(text: unknown): string | null {
