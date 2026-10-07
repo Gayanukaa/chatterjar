@@ -42,3 +42,7 @@ CLAUDE.local.md
 live-build-room-app.md
 answer-key.csv
 spot-the-ai.zip
+
+# local agent skills installed by vercel integration
+.agents/
+skills-lock.json
