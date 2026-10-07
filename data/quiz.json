@@ -1,0 +1,52 @@
+[
+  {
+    "question": "You have a free weekend. What do you do?",
+    "answers": {
+      "Idea": "Sketch ideas in a notebook",
+      "Researcher": "Read how something works",
+      "Freelancer": "Take a small paid job",
+      "Builder": "Make a small app or gadget",
+      "Developer": "Improve some code"
+    }
+  },
+  {
+    "question": "A friend asks you for help. What do you offer?",
+    "answers": {
+      "Idea": "Help them shape the idea",
+      "Researcher": "Find good sources",
+      "Freelancer": "Plan the work and the cost",
+      "Builder": "Build a first version",
+      "Developer": "Debug their code"
+    }
+  },
+  {
+    "question": "Which tool do you open first?",
+    "answers": {
+      "Idea": "A notebook",
+      "Researcher": "Google Scholar",
+      "Freelancer": "WhatsApp with a client",
+      "Builder": "Figma or an Arduino",
+      "Developer": "VS Code"
+    }
+  },
+  {
+    "question": "What makes you proud?",
+    "answers": {
+      "Idea": "A clear idea",
+      "Researcher": "A correct answer with sources",
+      "Freelancer": "A happy client",
+      "Builder": "A thing that people use",
+      "Developer": "Clean code"
+    }
+  },
+  {
+    "question": "You are stuck. What do you do?",
+    "answers": {
+      "Idea": "Talk it through",
+      "Researcher": "Read papers",
+      "Freelancer": "Ask the client",
+      "Builder": "Try a quick prototype",
+      "Developer": "Read the error message"
+    }
+  }
+]
