@@ -18,7 +18,6 @@ export function VotePanel({
   myVote: string | null;
   refresh: () => Promise<void>;
 }) {
-  const [sent, setSent] = useState<{ pollId: string; option: string }>();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ pollId: string; text: string }>();
 
@@ -33,8 +32,8 @@ export function VotePanel({
     );
   }
 
-  // The server vote wins; the local one covers the gap until the next poll.
-  const vote = myVote ?? (sent?.pollId === poll.id ? sent.option : null);
+  // me.vote is never cached, so the server is the only source of truth.
+  const vote = myVote;
   const canVote = poll.status === "open" && !vote && !sending;
   const revealed = poll.status === "revealed";
 
@@ -43,11 +42,10 @@ export function VotePanel({
     setSending(true);
     setError(undefined);
     const res = await post("/api/vote", { pollId: poll.id, option });
+    // Stay disabled until the refresh shows the vote from the server.
+    if (res.ok) await refresh();
     setSending(false);
-    if (res.ok) {
-      setSent({ pollId: poll.id, option });
-      await refresh();
-    } else {
+    if (!res.ok) {
       setError({
         pollId: poll.id,
         text: errorText(res.data, "Your vote did not go through. Try again."),

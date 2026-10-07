@@ -6,6 +6,7 @@ import { KeyForm } from "@/components/admin/key-form";
 import { PollList } from "@/components/admin/poll-list";
 import { QuestionsPanel } from "@/components/admin/questions-panel";
 import { QuizPanel } from "@/components/admin/quiz-panel";
+import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
 import { useRoomState } from "@/lib/use-room-state";
 
@@ -26,7 +27,7 @@ export default function AdminPage() {
             Room admin
           </h1>
           <p className="mt-1 text-muted">
-            Run polls, hide questions and reset the quiz.
+            Run polls, hide questions and reset the room.
           </p>
         </div>
         <p
@@ -49,6 +50,11 @@ export default function AdminPage() {
           act={act}
         />
         <div className="grid gap-10 lg:gap-8">
+          <RoomPanel
+            act={act}
+            hasActive={Boolean(data?.activeId)}
+            onDone={() => void room.refresh()}
+          />
           <CreatePollForm act={act} />
           <QuestionsPanel
             questions={room.state?.questions ?? null}

@@ -352,3 +352,70 @@ test("6. at 360 px nothing overflows and buttons are 48 px or taller", async ({
     expect(small, `${tab} tab buttons under 48 px`).toEqual([]);
   }
 });
+
+test("7. admin can withdraw the poll and reset the room", async ({
+  browser,
+  request,
+}) => {
+  // Reset wipes every vote, question and quiz answer: never run it on live data.
+  test.skip(Boolean(process.env.BASE_URL), "reset-room clears live data");
+  const pollId = await openPoll(request);
+  const text = `${TAG} reset ${Date.now()}`;
+
+  const student = await device(browser);
+  await openTab(student.page, "Vote");
+  await student.page
+    .getByRole("button", { name: "Vote A" })
+    .click({ timeout: SYNC });
+  await expect(student.page.getByText("You voted A")).toBeVisible();
+  await openTab(student.page, "Questions");
+  await student.page.getByLabel("Your question").fill(text);
+  await student.page.getByRole("button", { name: "Send question" }).click();
+  await expect(
+    student.page.getByTestId("question").filter({ hasText: text }),
+  ).toBeVisible({
+    timeout: SYNC,
+  });
+
+  const lecturer = await device(browser, `/admin?key=${ADMIN_KEY}`);
+  const withdraw = lecturer.page.getByRole("button", { name: "Withdraw poll" });
+  await expect(withdraw).toBeEnabled({ timeout: SYNC });
+  await withdraw.click();
+  await expect(lecturer.page.getByText("Poll withdrawn.")).toBeVisible();
+  await openTab(student.page, "Vote");
+  await expect(student.page.getByText("No poll yet")).toBeVisible({
+    timeout: SYNC,
+  });
+
+  lecturer.page.once("dialog", (d) => d.accept());
+  await lecturer.page.getByRole("button", { name: "Reset room" }).click();
+  await expect(lecturer.page.getByText("Room reset.")).toBeVisible({
+    timeout: SYNC,
+  });
+
+  await expect
+    .poll(
+      async () => {
+        const s = await getState(student.page.request);
+        const tally = Object.values(s.tally).reduce(
+          (sum, n) => sum + Number(n),
+          0,
+        );
+        return {
+          poll: s.poll,
+          mine: s.questions.some((q) => q.text === text),
+          tally,
+        };
+      },
+      { timeout: SYNC },
+    )
+    .toEqual({ poll: null, mine: false, tally: 0 });
+
+  // Voters were cleared, so the same device can vote again after reopening.
+  await admin(request, "/api/admin/status", { id: pollId, status: "open" });
+  await openTab(student.page, "Vote");
+  await student.page
+    .getByRole("button", { name: "Vote B" })
+    .click({ timeout: SYNC });
+  await expect(student.page.getByText("You voted B")).toBeVisible();
+});
