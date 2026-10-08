@@ -13,7 +13,7 @@ import { useRoomState } from "@/lib/use-room-state";
 
 export default function AdminPage() {
   const { key, data, offline, keyError, signIn, act } = useAdmin();
-  const room = useRoomState();
+  const room = useRoomState({ device: false });
 
   if (key === undefined) return null;
   if (key === null) return <KeyForm error={keyError} onSubmit={signIn} />;

@@ -22,4 +22,7 @@ export function proxy(req: NextRequest) {
   return res;
 }
 
-export const config = { matcher: ["/((?!_next/|spot/|favicon.ico).*)"] };
+// /api/room is CDN-cached, so it must never carry a Set-Cookie header.
+export const config = {
+  matcher: ["/((?!_next/|spot/|favicon.ico|api/room).*)"],
+};

@@ -9,7 +9,7 @@ import { useRoomState } from "@/lib/use-room-state";
 
 /** Projector view (1600 x 900): poll, top questions and the quiz tally. */
 export default function ScreenPage() {
-  const { state, offline } = useRoomState();
+  const { state, offline } = useRoomState({ device: false });
 
   return (
     <div className="flex min-h-dvh flex-col px-10 pt-10 pb-5 lg:h-dvh lg:overflow-hidden">
