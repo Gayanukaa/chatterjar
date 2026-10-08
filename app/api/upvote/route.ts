@@ -1,6 +1,6 @@
 import { VOTE_WEIGHT } from "@/lib/domain";
 import { body, fail, getRid, json, route } from "@/lib/http";
-import { db, k } from "@/lib/redis";
+import { db, k, touch } from "@/lib/redis";
 
 export const POST = route(async (req) => {
   const rid = getRid(req);
@@ -21,10 +21,14 @@ export const POST = route(async (req) => {
   const fresh = await r.sadd(k(`qv:${rid}`), id);
   if (!fresh) return fail("You already upvoted this question.", 409);
   // xx: never re-adds a question that was hidden after the check above.
-  await r.zadd(
-    k("q:rank"),
-    { xx: true, incr: true },
-    { score: VOTE_WEIGHT, member: id },
-  );
+  const p = r
+    .pipeline()
+    .zadd(
+      k("q:rank"),
+      { xx: true, incr: true },
+      { score: VOTE_WEIGHT, member: id },
+    );
+  touch(p, k(`qv:${rid}`), k("q:rank"));
+  await p.exec();
   return json({ ok: true });
 });

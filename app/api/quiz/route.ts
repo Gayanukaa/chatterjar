@@ -1,7 +1,7 @@
 import quiz from "@/data/quiz.json";
 import { isPersona, scorePersona } from "@/lib/domain";
 import { body, fail, getRid, json, route } from "@/lib/http";
-import { db, k } from "@/lib/redis";
+import { db, k, touch } from "@/lib/redis";
 import { invalidate } from "@/lib/state";
 
 export const POST = route(async (req) => {
@@ -23,11 +23,12 @@ export const POST = route(async (req) => {
       counted: false,
     });
   }
-  await r
+  const p = r
     .pipeline()
     .hincrby(k("quiz:tally"), persona, 1)
-    .hset(k("quiz:who"), { [rid]: persona })
-    .exec();
+    .hset(k("quiz:who"), { [rid]: persona });
+  touch(p, k("quiz:tally"), k("quiz:done"), k("quiz:who"));
+  await p.exec();
   invalidate();
   return json({ ok: true, persona, counted: true });
 });

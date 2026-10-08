@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { RID_PATTERN } from "./domain";
 
@@ -24,11 +25,15 @@ export function getRid(req: NextRequest): string | null {
   return rid && RID_PATTERN.test(rid) ? rid : null;
 }
 
+const digest = (s: string) => createHash("sha256").update(s).digest();
+
+/** True if x-admin-key matches ADMIN_KEY; header only, so keys stay out of logs. */
 export function isAdmin(req: NextRequest): boolean {
-  const key =
-    req.headers.get("x-admin-key") ?? req.nextUrl.searchParams.get("key");
+  const key = req.headers.get("x-admin-key");
   const expected = process.env.ADMIN_KEY;
-  return Boolean(expected) && key === expected;
+  if (!key || !expected) return false;
+  // Equal-length digests make the compare constant-time.
+  return timingSafeEqual(digest(key), digest(expected));
 }
 
 /** Parsed JSON body, or an empty object when the body is not JSON. */
