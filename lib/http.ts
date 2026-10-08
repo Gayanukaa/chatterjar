@@ -11,6 +11,13 @@ export function json(data: unknown, status = 200) {
 
 export const fail = (error: string, status: number) => json({ error }, status);
 
+/** JSON the Vercel CDN may cache for 1 s; only for data every client shares. */
+export function sharedJson(data: unknown) {
+  return NextResponse.json(data, {
+    headers: { "Cache-Control": "public, s-maxage=1, must-revalidate" },
+  });
+}
+
 /** Device id from the rid cookie set in proxy.ts, or null if missing or malformed. */
 export function getRid(req: NextRequest): string | null {
   const rid = req.cookies.get("rid")?.value;

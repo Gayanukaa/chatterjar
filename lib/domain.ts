@@ -51,6 +51,8 @@ export interface RoomState {
   poll: PublicPoll | null;
   questions: Question[];
   tally: Record<Persona, number>;
+  // Bumped by room and quiz resets so phones refetch their device state.
+  epoch: number;
   me: DeviceState;
 }
 

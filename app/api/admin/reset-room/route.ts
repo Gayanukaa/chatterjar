@@ -53,6 +53,7 @@ export const POST = adminRoute(async () => {
     p.del(...doomed.slice(i, i + 200));
   for (const poll of polls)
     if (poll) p.set(k(`poll:${poll.id}`), { ...poll, status: "closed" });
+  p.incr(k("room:epoch"));
   await p.exec();
   invalidate();
   return json({
