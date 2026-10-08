@@ -146,6 +146,7 @@ Open http://localhost:3000. For a real event, put an HTTPS reverse proxy (Caddy,
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Upstash integration | Redis REST connection (the app falls back to `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) |
 | `ADMIN_KEY`                            | You                 | Unlocks `/admin` and the admin API                                                                    |
 | `REDIS_PREFIX`                         | Optional            | Prefixes every Redis key, so tests and demos never touch live data                                    |
+| `DATA_TTL_DAYS`                        | Optional            | Days to keep votes, questions and quiz answers after the last write (default 30, `0` keeps them)      |
 
 </details>
 

@@ -22,3 +22,14 @@ export function db(): Redis {
 
 /** Prefixes a key so e2e runs (REDIS_PREFIX=e2e:) never touch live data. */
 export const k = (key: string) => prefix + key;
+
+const ttlDays = Number(process.env.DATA_TTL_DAYS ?? 30);
+// Audience data expires this long after its last write; 0 keeps it forever.
+export const DATA_TTL_S = ttlDays > 0 ? Math.round(ttlDays * 86_400) : 0;
+
+type Expirer = { expire: (key: string, seconds: number) => unknown };
+
+/** Queues an expiry refresh on audience-data keys (no-op when TTL is off). */
+export function touch(p: Expirer, ...keys: string[]) {
+  if (DATA_TTL_S) for (const key of keys) p.expire(key, DATA_TTL_S);
+}

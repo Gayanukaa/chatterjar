@@ -4,7 +4,7 @@ import {
   validateQuestion,
 } from "@/lib/domain";
 import { body, fail, getRid, json, route } from "@/lib/http";
-import { db, k } from "@/lib/redis";
+import { db, k, touch } from "@/lib/redis";
 import { invalidate } from "@/lib/state";
 
 export const POST = route(async (req) => {
@@ -24,12 +24,13 @@ export const POST = route(async (req) => {
   }
   const createdAt = Date.now();
   const id = `q${createdAt.toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-  await r
+  const p = r
     .pipeline()
     .hset(k("q:text"), { [id]: text })
     .hset(k(`q:${id}`), { hidden: 0, by: rid })
-    .zadd(k("q:rank"), { score: questionScore(0, createdAt), member: id })
-    .exec();
+    .zadd(k("q:rank"), { score: questionScore(0, createdAt), member: id });
+  touch(p, k("q:text"), k(`q:${id}`), k("q:rank"));
+  await p.exec();
   invalidate();
   return json({ ok: true, id }, 201);
 });
