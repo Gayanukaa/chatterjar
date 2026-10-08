@@ -21,6 +21,7 @@ npm-debug.log*
 
 # env files (vercel env pull writes .env.local)
 .env*
+!.env.example
 
 # vercel
 .vercel

@@ -1,0 +1,10 @@
+Chatterjar
+Copyright (c) 2026 Gayanuka Amarasuriya. Code licensed under the MIT License (see LICENSE).
+
+This project uses third-party software and assets:
+
+- Next.js, React, @upstash/redis: MIT License.
+- lucide-react icons: ISC License.
+- Bricolage Grotesque and Figtree fonts (via next/font/google): SIL Open Font License 1.1.
+- Media in public/spot/assets and data/rounds.json: separate licences, listed in SOURCES.md.
+  The MIT License does not cover these files.
