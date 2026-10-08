@@ -13,7 +13,7 @@ jobs:
     name: Lint, unit tests, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -42,7 +42,7 @@ jobs:
       KV_REST_API_URL: http://localhost:8079
       KV_REST_API_TOKEN: ci-token
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: 24
