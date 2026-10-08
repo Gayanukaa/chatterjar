@@ -1,0 +1,46 @@
+{
+  "id": "demo",
+  "title": "Demo: warm-up polls",
+  "description": "Four general polls for any talk, class or event.",
+  "polls": [
+    {
+      "id": "familiar",
+      "question": "How familiar are you with today's topic?",
+      "options": [
+        { "label": "New to it" },
+        { "label": "I know the basics" },
+        { "label": "I use it often" },
+        { "label": "I could give this talk" }
+      ]
+    },
+    {
+      "id": "where",
+      "question": "Where are you joining from?",
+      "options": [
+        { "label": "In the room" },
+        { "label": "Online" },
+        { "label": "Watching the recording later" }
+      ]
+    },
+    {
+      "id": "moons",
+      "question": "Which planet has the most known moons?",
+      "options": [
+        { "label": "Jupiter" },
+        { "label": "Saturn" },
+        { "label": "Uranus" },
+        { "label": "Neptune" }
+      ],
+      "correct": "B"
+    },
+    {
+      "id": "wrap-up",
+      "question": "What should we do with the last 10 minutes?",
+      "options": [
+        { "label": "More demos" },
+        { "label": "Open Q&A" },
+        { "label": "A hands-on exercise" }
+      ]
+    }
+  ]
+}

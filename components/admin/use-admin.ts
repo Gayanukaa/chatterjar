@@ -6,9 +6,16 @@ import type { Poll } from "@/lib/domain";
 import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
+export interface PackSummary {
+  id: string;
+  title: string;
+  description: string;
+  count: number;
+}
 export interface AdminState {
   activeId: string | null;
   polls: AdminPoll[];
+  packs: PackSummary[];
 }
 
 const STORE = "room-admin-key";

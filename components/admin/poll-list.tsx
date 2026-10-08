@@ -12,8 +12,8 @@ import {
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import type { PollStatus } from "@/lib/domain";
-import { Button, ErrorText, Section } from "./ui";
-import type { AdminPoll } from "./use-admin";
+import { Button, ErrorText, FIELD, Section } from "./ui";
+import type { AdminPoll, PackSummary } from "./use-admin";
 
 type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
 
@@ -39,12 +39,15 @@ const fileName = (src: string) => src.split("/").pop() ?? src;
 export function PollList({
   polls,
   activeId,
+  packs,
   act,
 }: {
   polls: AdminPoll[] | null;
   activeId: string | null;
+  packs: PackSummary[];
   act: Act;
 }) {
+  const [pack, setPack] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Answers stay hidden until reveal, in case /admin is on a shared screen.
@@ -63,13 +66,31 @@ export function PollList({
       id="polls-heading"
       title="Polls"
       action={
-        <Button
-          onClick={() => run("presets", "/api/admin/presets")}
-          disabled={busy !== null}
-        >
-          <ListPlus aria-hidden />
-          Load preset polls
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="pack-select" className="sr-only">
+            Content pack
+          </label>
+          <select
+            id="pack-select"
+            value={pack}
+            onChange={(e) => setPack(e.target.value)}
+            className={`${FIELD} w-auto`}
+          >
+            <option value="">Choose a content pack</option>
+            {packs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.title} ({p.count} {p.count === 1 ? "poll" : "polls"})
+              </option>
+            ))}
+          </select>
+          <Button
+            onClick={() => run("presets", "/api/admin/presets", { pack })}
+            disabled={busy !== null || !pack}
+          >
+            <ListPlus aria-hidden />
+            Load pack
+          </Button>
+        </div>
       }
     >
       {error && (

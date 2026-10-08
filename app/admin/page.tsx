@@ -49,6 +49,7 @@ export default function AdminPage() {
         <PollList
           polls={data?.polls ?? null}
           activeId={data?.activeId ?? null}
+          packs={data?.packs ?? []}
           act={act}
         />
         <div className="grid gap-10 lg:gap-8">

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import rounds from "@/data/rounds.json";
+import { PACKS, packPolls } from "@/lib/packs";
+import { existsSync } from "node:fs";
 import {
-  buildPresets,
   publicPoll,
   questionScore,
   scorePersona,
@@ -59,28 +59,41 @@ describe("publicPoll", () => {
   });
 });
 
-describe("buildPresets", () => {
-  const presets = buildPresets(rounds, 1000);
-  it("builds 5 rounds and the exam question with fixed ids", () => {
-    expect(presets.map((p) => p.id)).toEqual([
-      "spot-1",
-      "spot-2",
-      "spot-3",
-      "spot-4",
-      "spot-5",
-      "exam-1",
-    ]);
-    expect(presets[5].correct).toBe("B");
+describe("content packs", () => {
+  it("every pack is valid, with prefixed ids and real media files", () => {
+    for (const pack of PACKS) {
+      const polls = packPolls(pack, 1000);
+      expect(polls, pack.id).not.toBeNull();
+      expect(polls).toHaveLength(pack.polls.length);
+      for (const poll of polls ?? []) {
+        expect(poll.id.startsWith(`${pack.id}-`)).toBe(true);
+        for (const o of poll.options) {
+          if (o.media)
+            expect(existsSync(`public${o.media.src}`), o.media.src).toBe(true);
+        }
+      }
+    }
   });
-  it("names rounds without the type prefix and maps media", () => {
-    expect(presets[0].question).toBe(
-      "Round 1: cats. Which one did an AI make?",
-    );
-    expect(presets[1].options[0].media).toEqual({
-      type: "code",
-      src: "/spot/assets/round2_code_A.java",
-    });
-    expect(presets[4].options[1].media?.type).toBe("audio");
+  it("rejects a pack whose correct option does not exist", () => {
+    const bad = {
+      ...PACKS[0],
+      polls: [{ ...PACKS[0].polls[0], correct: "D" }],
+    };
+    bad.polls[0].options = bad.polls[0].options.slice(0, 2);
+    expect(packPolls(bad, 1)).toBeNull();
+  });
+  it("loads the spot pack with image, text and audio rounds", () => {
+    const spot = PACKS.find((p) => p.id === "spot-the-ai");
+    const polls = packPolls(spot!, 1) ?? [];
+    expect(polls.map((p) => p.options[0].media?.type)).toEqual([
+      "image",
+      "text",
+      "image",
+      "text",
+      "audio",
+    ]);
+    // The AI side varies, so A is not always the answer.
+    expect(new Set(polls.map((p) => p.correct)).size).toBe(2);
   });
 });
 

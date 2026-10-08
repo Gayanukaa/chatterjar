@@ -1,35 +1,6 @@
-import {
-  OPTION_KEYS,
-  type MediaType,
-  type Option,
-  type Poll,
-} from "@/lib/domain";
+import { parseOptions, type Poll } from "@/lib/domain";
 import { adminRoute, body, fail, json } from "@/lib/http";
 import { db, k } from "@/lib/redis";
-
-const MEDIA_TYPES: MediaType[] = ["image", "code", "text", "audio"];
-
-/** Builds a valid option list from the request, or null if it is invalid. */
-function parseOptions(raw: unknown): Option[] | null {
-  if (!Array.isArray(raw) || raw.length < 2 || raw.length > 4) return null;
-  const options: Option[] = [];
-  for (const [i, o] of raw.entries()) {
-    const label = typeof o?.label === "string" ? o.label.trim() : "";
-    if (!label || label.length > 200) return null;
-    const option: Option = { key: OPTION_KEYS[i], label };
-    const m = o?.media;
-    if (
-      m &&
-      MEDIA_TYPES.includes(m.type) &&
-      typeof m.src === "string" &&
-      m.src.startsWith("/")
-    ) {
-      option.media = { type: m.type, src: m.src };
-    }
-    options.push(option);
-  }
-  return options;
-}
 
 export const POST = adminRoute(async (req) => {
   const b = await body(req);
