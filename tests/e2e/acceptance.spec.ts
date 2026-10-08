@@ -207,6 +207,7 @@ test("2. revealed poll shows bars and the correct option on / and /screen", asyn
   await expect(
     screen.page.getByText("Correct answer: B").first(),
   ).toBeVisible();
+  await expect(screen.page.getByTestId("screen-qr")).toBeVisible();
 });
 
 test("3. hidden question disappears from both devices", async ({

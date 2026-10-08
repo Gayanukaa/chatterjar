@@ -2,6 +2,7 @@
 
 import { WifiOff } from "lucide-react";
 import { JoinHost } from "@/components/screen/join-host";
+import { JoinQr } from "@/components/screen/join-qr";
 import { ScreenPoll } from "@/components/screen/screen-poll";
 import { ScreenQuestions } from "@/components/screen/screen-questions";
 import { ScreenTally } from "@/components/screen/screen-tally";
@@ -20,8 +21,9 @@ export default function ScreenPage() {
             <div className="min-h-0 overflow-hidden lg:border-l lg:border-line lg:pl-10">
               <ScreenQuestions questions={state.questions} />
             </div>
-            <div className="min-h-0 lg:border-l lg:border-line lg:pl-10">
+            <div className="flex min-h-0 flex-col justify-between gap-8 lg:border-l lg:border-line lg:pl-10">
               <ScreenTally tally={state.tally} />
+              <JoinQr />
             </div>
           </>
         ) : (
