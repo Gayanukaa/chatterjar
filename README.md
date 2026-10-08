@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Next.js-16-18202F?logo=nextdotjs&logoColor=white" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/Upstash-Redis-147A58?logo=redis&logoColor=white" alt="Upstash Redis" />
   <img src="https://img.shields.io/badge/deploy-Vercel-000?logo=vercel&logoColor=white" alt="Deployed on Vercel" />
-  <a href="https://github.com/Gayanukaa/the-room-app/actions/workflows/ci.yml"><img src="https://github.com/Gayanukaa/the-room-app/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/Gayanukaa/chatterjar/actions/workflows/ci.yml"><img src="https://github.com/Gayanukaa/chatterjar/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <br/>
@@ -100,7 +100,7 @@ Phones poll every 3 seconds with plain fetch. The shared room state is cached on
 
 ### Deploy your own (5 minutes)
 
-<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGayanukaa%2Fthe-room-app&project-name=chatterjar&repository-name=chatterjar&env=ADMIN_KEY&envDescription=A+long+random+string+that+unlocks+%2Fadmin+%28for+example%3A+openssl+rand+-hex+24%29&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22upstash%22%2C%22productSlug%22%3A%22upstash-kv%22%2C%22protocol%22%3A%22storage%22%7D%5D"><img src="https://vercel.com/button" alt="Deploy with Vercel" /></a>
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGayanukaa%2Fchatterjar&project-name=chatterjar&repository-name=chatterjar&env=ADMIN_KEY&envDescription=A+long+random+string+that+unlocks+%2Fadmin+%28for+example%3A+openssl+rand+-hex+24%29&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22upstash%22%2C%22productSlug%22%3A%22upstash-kv%22%2C%22protocol%22%3A%22storage%22%7D%5D"><img src="https://vercel.com/button" alt="Deploy with Vercel" /></a>
 
 The button creates a Vercel project from this repo, adds a free Upstash Redis store and asks for an `ADMIN_KEY`. When it finishes, open `/admin?key=<ADMIN_KEY>` on your new site.
 
@@ -109,7 +109,7 @@ The button creates a Vercel project from this repo, adds a free Upstash Redis st
 You need Node.js 24, a [Vercel](https://vercel.com) account and the Vercel CLI (`npm i -g vercel`).
 
 ```bash
-git clone https://github.com/Gayanukaa/the-room-app.git chatterjar
+git clone https://github.com/Gayanukaa/chatterjar.git
 cd chatterjar
 npm install
 
