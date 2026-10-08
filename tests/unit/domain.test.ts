@@ -82,13 +82,18 @@ describe("content packs", () => {
     bad.polls[0].options = bad.polls[0].options.slice(0, 2);
     expect(packPolls(bad, 1)).toBeNull();
   });
-  it("loads the spot pack with text and audio media", () => {
+  it("loads the spot pack with image, text and audio rounds", () => {
     const spot = PACKS.find((p) => p.id === "spot-the-ai");
     const polls = packPolls(spot!, 1) ?? [];
     expect(polls.map((p) => p.options[0].media?.type)).toEqual([
+      "image",
+      "text",
+      "image",
       "text",
       "audio",
     ]);
+    // The AI side varies, so A is not always the answer.
+    expect(new Set(polls.map((p) => p.correct)).size).toBe(2);
   });
 });
 
