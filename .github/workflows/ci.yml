@@ -56,3 +56,29 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  self-host:
+    name: Docker self-host smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Start the stack
+        run: ADMIN_KEY=ci-admin-key docker compose up -d --build
+      - name: Wait for the app
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/room > /dev/null && exit 0
+            sleep 2
+          done
+          docker compose logs app
+          exit 1
+      - name: Check state, device cookie and admin key
+        run: |
+          curl -sf http://localhost:3000/api/room | grep -q '"epoch"'
+          # Plain HTTP must still get a device cookie, so it must not be Secure.
+          curl -si http://localhost:3000/api/me | grep -i '^set-cookie: rid=' | grep -viq secure
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/api/admin/withdraw)" = 401
+          curl -sf -X POST -H 'x-admin-key: ci-admin-key' -H 'content-type: application/json' \
+            -d '{"pack":"demo"}' http://localhost:3000/api/admin/presets | grep -q demo-moons
+      - if: always()
+        run: docker compose down -v

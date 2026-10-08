@@ -1,0 +1,36 @@
+# Self-host Chatterjar without Vercel or Upstash:
+#   ADMIN_KEY=$(openssl rand -hex 24) docker compose up --build
+# Then open http://localhost:3000. Put an HTTPS reverse proxy in front for real events.
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  # Speaks the Upstash REST API, so the app needs no code changes.
+  srh:
+    image: hiett/serverless-redis-http:latest
+    environment:
+      SRH_MODE: env
+      SRH_TOKEN: ${SRH_TOKEN:-change-me-srh-token}
+      SRH_CONNECTION_STRING: redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      KV_REST_API_URL: http://srh:80
+      KV_REST_API_TOKEN: ${SRH_TOKEN:-change-me-srh-token}
+      ADMIN_KEY: ${ADMIN_KEY:?Set ADMIN_KEY, for example with openssl rand -hex 24}
+    depends_on:
+      - srh
+    restart: unless-stopped
+
+volumes:
+  redis-data:
