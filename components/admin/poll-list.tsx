@@ -1,6 +1,14 @@
 "use client";
 
-import { CircleCheck, Eye, ListPlus, Lock, Play, Radio } from "lucide-react";
+import {
+  CircleCheck,
+  Eye,
+  EyeOff,
+  ListPlus,
+  Lock,
+  Play,
+  Radio,
+} from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import type { PollStatus } from "@/lib/domain";
@@ -39,6 +47,8 @@ export function PollList({
 }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Answers stay hidden until reveal, in case /admin is on a shared screen.
+  const [peek, setPeek] = useState<string | null>(null);
 
   async function run(tag: string, path: string, payload?: unknown) {
     setBusy(tag);
@@ -108,7 +118,9 @@ export function PollList({
                 </h3>
                 <ul className="mt-3 grid gap-2.5">
                   {poll.options.map((o, i) => {
-                    const correct = o.key === poll.correct;
+                    const correct =
+                      o.key === poll.correct &&
+                      (poll.status === "revealed" || peek === poll.id);
                     const text =
                       o.media && o.label === o.key
                         ? fileName(o.media.src)
@@ -150,8 +162,24 @@ export function PollList({
                     );
                   })}
                 </ul>
-                {!poll.correct && (
+                {!poll.correct ? (
                   <p className="mt-3 text-sm text-muted">No correct option.</p>
+                ) : (
+                  poll.status !== "revealed" && (
+                    <button
+                      type="button"
+                      aria-pressed={peek === poll.id}
+                      onClick={() => setPeek(peek === poll.id ? null : poll.id)}
+                      className="mt-3 inline-flex min-h-12 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted hover:text-ink"
+                    >
+                      {peek === poll.id ? (
+                        <EyeOff aria-hidden className="size-4" />
+                      ) : (
+                        <Eye aria-hidden className="size-4" />
+                      )}
+                      {peek === poll.id ? "Hide answer" : "Show answer"}
+                    </button>
+                  )
                 )}
                 <div
                   role="group"
