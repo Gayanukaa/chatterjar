@@ -60,10 +60,12 @@ jobs:
   self-host:
     name: Docker self-host smoke test
     runs-on: ubuntu-latest
+    env:
+      ADMIN_KEY: ci-admin-key
     steps:
       - uses: actions/checkout@v7
       - name: Start the stack
-        run: ADMIN_KEY=ci-admin-key docker compose up -d --build
+        run: docker compose up -d --build
       - name: Wait for the app
         run: |
           for i in $(seq 1 60); do
