@@ -9,8 +9,9 @@ const heading = Bricolage_Grotesque({
 const body = Figtree({ variable: "--font-body", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "The room",
-  description: "Vote, ask questions and take the persona quiz in class.",
+  title: "Chatterjar",
+  description:
+    "Live polls, questions and quizzes for talks, classes and conferences.",
 };
 
 export const viewport: Viewport = {

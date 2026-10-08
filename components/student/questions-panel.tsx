@@ -73,7 +73,7 @@ export function QuestionsPanel({
             setText(e.target.value);
             setSentNote(false);
           }}
-          placeholder="Ask anything about today's class"
+          placeholder="Ask the speaker anything"
           className="block w-full resize-none rounded-xl bg-white px-3 py-3 text-base text-ink ring-1 ring-line placeholder:text-muted focus:ring-2 focus:ring-blue focus:outline-none"
         />
         <button
