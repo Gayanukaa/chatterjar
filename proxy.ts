@@ -15,7 +15,10 @@ export function proxy(req: NextRequest) {
   res.cookies.set("rid", rid, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // Secure only over HTTPS, so plain-HTTP self-hosts still get a device id.
+    secure:
+      req.nextUrl.protocol === "https:" ||
+      req.headers.get("x-forwarded-proto") === "https",
     maxAge: YEAR_S,
     path: "/",
   });

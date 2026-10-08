@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Next.js-16-18202F?logo=nextdotjs&logoColor=white" alt="Next.js 16" />
   <img src="https://img.shields.io/badge/Upstash-Redis-147A58?logo=redis&logoColor=white" alt="Upstash Redis" />
   <img src="https://img.shields.io/badge/deploy-Vercel-000?logo=vercel&logoColor=white" alt="Deployed on Vercel" />
-  <img src="https://img.shields.io/badge/acceptance%20checks-7%2F7-2D58D2" alt="7 of 7 acceptance checks pass" />
+  <a href="https://github.com/Gayanukaa/the-room-app/actions/workflows/ci.yml"><img src="https://github.com/Gayanukaa/the-room-app/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
 </p>
 
 <br/>
@@ -81,15 +81,15 @@ Five questions map each person to a persona. The room tally grows live on the pr
 <tr>
 <td valign="top">
 <h3>Projector view</h3>
-A 1600 x 900 layout with large type: the active poll, the top five questions and the quiz tally. Bars and new questions animate in.
+A 1600 x 900 layout with large type: the active poll, the top five questions, the quiz tally and a scan-to-join QR code. Bars and new questions animate in.
 </td>
 <td valign="top">
 <h3>Admin console</h3>
-Create polls, load presets, open, close and reveal, hide questions, withdraw the poll, or reset the whole room. Answers stay hidden on the admin page too, so it is safe to share your screen.
+Create polls, load content packs, open, close and reveal, hide questions, withdraw the poll, or reset the whole room. Answers stay hidden on the admin page too, so it is safe to share your screen.
 </td>
 <td valign="top">
 <h3>Built for a full room</h3>
-Phones poll every 3 seconds with plain fetch. Each state read takes at most two Redis round trips and is cached for 1 s, so about 90 phones stay well inside the Upstash budget.
+Phones poll every 3 seconds with plain fetch. The shared room state is cached on the Vercel CDN for 1 s, and each phone fetches its own state only after it acts, so a 90-person session fits in the free tiers.
 </td>
 </tr>
 </table>
@@ -97,6 +97,14 @@ Phones poll every 3 seconds with plain fetch. Each state read takes at most two 
 <br/>
 
 ## Quickstart
+
+### Deploy your own (5 minutes)
+
+<a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FGayanukaa%2Fthe-room-app&project-name=chatterjar&repository-name=chatterjar&env=ADMIN_KEY&envDescription=A+long+random+string+that+unlocks+%2Fadmin+%28for+example%3A+openssl+rand+-hex+24%29&stores=%5B%7B%22type%22%3A%22integration%22%2C%22integrationSlug%22%3A%22upstash%22%2C%22productSlug%22%3A%22upstash-kv%22%2C%22protocol%22%3A%22storage%22%7D%5D"><img src="https://vercel.com/button" alt="Deploy with Vercel" /></a>
+
+The button creates a Vercel project from this repo, adds a free Upstash Redis store and asks for an `ADMIN_KEY`. When it finishes, open `/admin?key=<ADMIN_KEY>` on your new site.
+
+### Run it locally
 
 You need Node.js 24, a [Vercel](https://vercel.com) account and the Vercel CLI (`npm i -g vercel`).
 
@@ -118,7 +126,17 @@ npm run dev
 
 Open http://localhost:3000 for the phone page, `/screen` for the projector and `/admin?key=<ADMIN_KEY>` for the admin console.
 
-**Deploy:** connect the GitHub repo to the Vercel project. Every merge to `main` deploys production, and every pull request gets a preview. You can also run `vercel --prod`.
+### Self-host with Docker
+
+No Vercel or Upstash account needed. The stack runs the app, Redis and an Upstash-compatible REST proxy ([serverless-redis-http](https://github.com/hiett/serverless-redis-http)):
+
+```bash
+ADMIN_KEY=$(openssl rand -hex 24) docker compose up --build
+```
+
+Open http://localhost:3000. For a real event, put an HTTPS reverse proxy (Caddy, nginx, Cloudflare Tunnel) in front so phones can reach it.
+
+**Deploy from GitHub:** connect the GitHub repo to the Vercel project. Every merge to `main` deploys production, and every pull request gets a preview. You can also run `vercel --prod`.
 
 <details>
 <summary><b>Environment variables</b></summary>
@@ -136,8 +154,8 @@ Open http://localhost:3000 for the phone page, `/screen` for the projector and `
 ## Run a session
 
 1. Open `/admin?key=<ADMIN_KEY>` on your laptop. The page removes the key from the address bar after the first load.
-2. Click **Load preset polls**, or create your own poll.
-3. Put `/screen` on the projector. It shows the join address in the corner; add a QR code for it to your slides.
+2. Pick a content pack and click **Load pack**, or create your own poll.
+3. Put `/screen` on the projector. It shows a scan-to-join QR code and the join address.
 4. Click **Open** on a poll. Phones show the options and people vote.
 5. Click **Reveal**. The projector animates the results and shows the correct answer.
 6. Use **Hide** on any question you do not want on the wall.
@@ -147,6 +165,33 @@ Open http://localhost:3000 for the phone page, `/screen` for the projector and `
   <img src="docs/assets/admin.png" width="820" alt="Admin console with the poll list, room controls, poll form, questions and quiz tally" /><br/>
   <sub><b>Admin console</b> (<code>/admin</code>): answers stay hidden until you reveal, so you can share this screen.</sub>
 </p>
+
+<br/>
+
+## Content packs
+
+Polls you reuse live in JSON files in [`data/packs/`](data/packs). Three ship with the repo:
+
+| Pack                | Polls | Content                                                                                                  |
+| ------------------- | ----- | -------------------------------------------------------------------------------------------------------- |
+| Demo: warm-up polls | 4     | General polls for any talk, plus one trivia question                                                     |
+| Spot the AI         | 5     | Two photos, two texts and a music clip: which one did an AI make? Licences in [`SOURCES.md`](SOURCES.md) |
+| Claude Code talk    | 1     | An exam-style question about planning a large change                                                     |
+
+To add your own pack, copy `data/packs/demo.json`, edit the polls (2 to 4 options each, optional `correct` option and media from `public/`), and list it in [`lib/packs.ts`](lib/packs.ts). The quiz questions and personas live in [`data/quiz.json`](data/quiz.json).
+
+<br/>
+
+## How far the free tiers go
+
+Measured for one 1-hour session with about 90 phones polling every 3 seconds:
+
+| Service       | Free tier                                 | One session uses                                   | Sessions per month |
+| ------------- | ----------------------------------------- | -------------------------------------------------- | ------------------ |
+| Vercel Hobby  | about 1M edge requests, 1M function calls | about 108K edge requests, about 30K function calls | about 9            |
+| Upstash Redis | 500K commands                             | about 20K to 30K commands                          | about 15 to 25     |
+
+Vercel Hobby is for personal, non-commercial use. For more sessions, upgrade Vercel to Pro or self-host with Docker. Upstash pay-as-you-go costs about $0.20 per 100K commands.
 
 <br/>
 
@@ -182,7 +227,7 @@ The acceptance checks run against a local dev server with `REDIS_PREFIX=e2e:`. T
 app/            pages (/, /screen, /admin) and API routes
 components/     student, screen and admin UI
 lib/            domain rules, Redis client, state reader
-data/           quiz questions and Spot-the-AI rounds
+data/           content packs (data/packs) and quiz questions
 public/spot/    Spot-the-AI media
 tests/          unit and end-to-end tests
 docs/           architecture diagram and README assets
@@ -190,6 +235,12 @@ docs/           architecture diagram and README assets
 
 <br/>
 
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup and house rules, and follow the [code of conduct](CODE_OF_CONDUCT.md). Report security problems privately as described in [`SECURITY.md`](SECURITY.md).
+
+<br/>
+
 ## Content and licence
 
-The code is MIT licensed (see [`LICENSE`](LICENSE)). The MIT licence does not cover the Spot-the-AI files in `public/spot/assets` and `data/rounds.json`. Use them for non-commercial teaching only, with the credits in [`SOURCES.md`](SOURCES.md).
+The code is MIT licensed (see [`LICENSE`](LICENSE)). The MIT licence does not cover the Spot-the-AI media in `public/spot/assets`. Each file keeps its own licence (CC0, CC BY, CC BY-SA or CC BY-NC); see [`SOURCES.md`](SOURCES.md) for credits and terms.
