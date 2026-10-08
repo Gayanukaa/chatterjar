@@ -7,7 +7,10 @@ import { post } from "@/lib/api";
 import { PERSONAS, isPersona, type Persona } from "@/lib/domain";
 import { ErrorNote, errorText } from "./error-note";
 
-const QUIZ = quiz as { question: string; answers: Record<Persona, string> }[];
+const QUIZ = quiz.questions as {
+  question: string;
+  answers: Record<Persona, string>;
+}[];
 
 /** Five-question persona quiz; after it, the persona and the room tally. */
 export function QuizPanel({
@@ -49,7 +52,7 @@ export function QuizPanel({
           className="rounded-2xl bg-violet/[0.07] px-4 py-5"
         >
           <p className="font-heading text-3xl leading-tight font-bold text-violet">
-            You are {shown === "Idea" ? "an" : "a"} {shown}
+            You are {/^[aeiou]/i.test(shown) ? "an" : "a"} {shown}
           </p>
           <p className="mt-2 text-muted">
             Your answer is in the room count below.

@@ -9,9 +9,10 @@ export const POST = route(async (req) => {
   if (!rid) return fail("Reload the page and try again.", 400);
   const { answers } = await body(req);
   const persona = Array.isArray(answers)
-    ? scorePersona(answers, quiz.length)
+    ? scorePersona(answers, quiz.questions.length)
     : null;
-  if (!persona) return fail("Answer all 5 questions.", 400);
+  if (!persona)
+    return fail(`Answer all ${quiz.questions.length} questions.`, 400);
   const r = db();
   const fresh = await r.sadd(k("quiz:done"), rid);
   if (!fresh) {

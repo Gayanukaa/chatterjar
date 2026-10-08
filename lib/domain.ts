@@ -1,11 +1,8 @@
-export const PERSONAS = [
-  "Idea",
-  "Researcher",
-  "Freelancer",
-  "Builder",
-  "Developer",
-] as const;
-export type Persona = (typeof PERSONAS)[number];
+import quiz from "@/data/quiz.json";
+
+// Personas come from data/quiz.json; their order breaks ties.
+export const PERSONAS: readonly string[] = quiz.personas;
+export type Persona = string;
 export type PollStatus = "open" | "closed" | "revealed";
 export type MediaType = "image" | "code" | "text" | "audio";
 
@@ -57,17 +54,6 @@ export interface RoomState {
   me: DeviceState;
 }
 
-export interface Round {
-  round: number;
-  type: string;
-  subject: string;
-  A: string;
-  B: string;
-  answer: string;
-  source: string;
-  task?: string;
-}
-
 export const MAX_QUESTION = 200;
 export const QUESTIONS_PER_MINUTE = 3;
 export const OPTION_KEYS = ["A", "B", "C", "D"];
@@ -76,7 +62,7 @@ export const VOTE_WEIGHT = 1e13;
 export const RID_PATTERN = /^[0-9a-f-]{36}$/i;
 
 export const isPersona = (v: unknown): v is Persona =>
-  PERSONAS.includes(v as Persona);
+  typeof v === "string" && PERSONAS.includes(v);
 
 /** Persona with the most answers; a tie goes to the earlier persona in PERSONAS. */
 export function scorePersona(
@@ -129,57 +115,26 @@ export function validateQuestion(text: unknown): string | null {
   return t.length > 0 && t.length <= MAX_QUESTION ? t : null;
 }
 
-const MEDIA: Record<string, MediaType> = {
-  image: "image",
-  code: "code",
-  text: "text",
-  audio: "audio",
-};
+const MEDIA_TYPES: MediaType[] = ["image", "code", "text", "audio"];
 
-export const EXAM_QUESTION =
-  "Your team must split one large app into many smaller services. Many files will change. " +
-  "You must decide where each service starts and stops. What do you do first?";
-
-/** Preset polls: five Spot-the-AI rounds plus the exam question, with fixed ids. */
-export function buildPresets(rounds: Round[], now: number): Poll[] {
-  const spot: Poll[] = rounds.map((r) => ({
-    id: `spot-${r.round}`,
-    question: `Round ${r.round}: ${r.subject.split(": ").pop()}. Which one did an AI make?`,
-    detail: r.task,
-    source: r.source,
-    options: (["A", "B"] as const).map((key) => ({
-      key,
-      label: key,
-      media: { type: MEDIA[r.type] ?? "image", src: `/spot/${r[key]}` },
-    })),
-    correct: r.answer,
-    status: "closed",
-    createdAt: now + r.round,
-  }));
-  const exam: Poll = {
-    id: "exam-1",
-    question: EXAM_QUESTION,
-    options: [
-      {
-        key: "A",
-        label: "Start to change the code. Learn the structure as you go.",
-      },
-      {
-        key: "B",
-        label: "Use plan mode. Explore the code and design the change first.",
-      },
-      {
-        key: "C",
-        label: "Write very detailed instructions. Then run them directly.",
-      },
-      {
-        key: "D",
-        label: "Start directly. Change to plan mode only if problems occur.",
-      },
-    ],
-    correct: "B",
-    status: "closed",
-    createdAt: now + rounds.length + 1,
-  };
-  return [...spot, exam];
+/** Valid option list (2 to 4, keys A to D), or null; media must be a site path. */
+export function parseOptions(raw: unknown): Option[] | null {
+  if (!Array.isArray(raw) || raw.length < 2 || raw.length > 4) return null;
+  const options: Option[] = [];
+  for (const [i, o] of raw.entries()) {
+    const label = typeof o?.label === "string" ? o.label.trim() : "";
+    if (!label || label.length > 200) return null;
+    const option: Option = { key: OPTION_KEYS[i], label };
+    const m = o?.media;
+    if (
+      m &&
+      MEDIA_TYPES.includes(m.type) &&
+      typeof m.src === "string" &&
+      m.src.startsWith("/")
+    ) {
+      option.media = { type: m.type, src: m.src };
+    }
+    options.push(option);
+  }
+  return options;
 }

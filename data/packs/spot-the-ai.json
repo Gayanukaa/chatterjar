@@ -1,0 +1,28 @@
+{
+  "id": "spot-the-ai",
+  "title": "Spot the AI",
+  "description": "Two rounds: an essay paragraph and a music clip. Which one did an AI make?",
+  "polls": [
+    {
+      "id": "essay",
+      "question": "Essay paragraph: which one did an AI write?",
+      "detail": "Discuss the importance of effective change leadership in adopting social media initiatives and address the potential ethical issues that may arise when implementing social media marketing strategies.",
+      "source": "Ghostbuster (Verma et al., NAACL 2024), CC BY 3.0",
+      "options": [
+        { "label": "A", "media": { "type": "text", "src": "/spot/assets/round3_essay_A.txt" } },
+        { "label": "B", "media": { "type": "text", "src": "/spot/assets/round3_essay_B.txt" } }
+      ],
+      "correct": "B"
+    },
+    {
+      "id": "music",
+      "question": "Music: which clip did an AI make?",
+      "source": "Deezer AI-music detection examples (Afchar et al., ICASSP 2025), CC BY-NC 4.0",
+      "options": [
+        { "label": "A", "media": { "type": "audio", "src": "/spot/assets/round5_music_A.mp3" } },
+        { "label": "B", "media": { "type": "audio", "src": "/spot/assets/round5_music_B.mp3" } }
+      ],
+      "correct": "A"
+    }
+  ]
+}
