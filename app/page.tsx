@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@/components/logo";
 import {
   Compass,
   MessageCircleQuestionMark,
@@ -36,8 +37,9 @@ export default function Home() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col">
       <header className="flex items-center justify-between gap-3 px-4 pt-5 pb-3">
-        <h1 className="text-[2rem] leading-none font-bold tracking-[-0.03em]">
-          The room
+        <h1 className="flex items-center gap-2 text-[2rem] leading-none font-bold tracking-[-0.03em]">
+          <Logo className="size-9" />
+          Chatterjar
         </h1>
         <p
           role="status"

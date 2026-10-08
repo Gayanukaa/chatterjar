@@ -1,6 +1,7 @@
 "use client";
 
 import { WifiOff } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { CreatePollForm } from "@/components/admin/create-poll-form";
 import { KeyForm } from "@/components/admin/key-form";
 import { PollList } from "@/components/admin/poll-list";
@@ -23,8 +24,9 @@ export default function AdminPage() {
     <main className="mx-auto w-full max-w-6xl px-4 py-6 selection:bg-blue/15 sm:px-6 lg:py-10">
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b border-line pb-5">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Room admin
+          <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-tight sm:text-4xl">
+            <Logo className="size-10" />
+            Chatterjar admin
           </h1>
           <p className="mt-1 text-muted">
             Run polls, hide questions and reset the room.
