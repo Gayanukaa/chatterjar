@@ -1,10 +1,16 @@
-import { CircleCheck, Lock, Radio } from "lucide-react";
+import { CircleCheck, Lock, Radio, Smartphone, Star } from "lucide-react";
 import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";
-import type { PublicPoll } from "@/lib/domain";
+import { RatingResults, WordCloud } from "@/components/poll-results";
+import type { PollKind, PublicPoll } from "@/lib/domain";
 import styles from "./screen.module.css";
 
 const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
+const UNIT: Record<PollKind, string> = {
+  choice: "vote",
+  words: "answer",
+  rating: "rating",
+};
 
 /** Active poll for the projector; results appear only after the reveal. */
 export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
@@ -41,11 +47,38 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
         <p className="mt-3 max-w-[60ch] text-2xl text-muted">{poll.detail}</p>
       )}
 
-      <div className="mt-8 min-h-0 flex-1">
-        {revealed ? <Results poll={poll} /> : <Options poll={poll} />}
+      {/* Clip so long content never pushes the vote count off screen. */}
+      <div className="mt-8 min-h-0 flex-1 overflow-hidden">
+        {poll.kind === "words" ? (
+          revealed ? (
+            <WordCloud results={poll.results ?? {}} large />
+          ) : (
+            <Prompt text="Send your answer from your phone." />
+          )
+        ) : poll.kind === "rating" ? (
+          revealed ? (
+            <div className="max-w-[56rem]">
+              <RatingResults
+                results={poll.results ?? {}}
+                average={poll.average}
+                large
+              />
+            </div>
+          ) : (
+            <Stars />
+          )
+        ) : revealed ? (
+          <Results poll={poll} />
+        ) : (
+          <Options poll={poll} />
+        )}
       </div>
 
-      <VoteCount total={poll.total} status={poll.status} />
+      <VoteCount
+        total={poll.total}
+        status={poll.status}
+        unit={UNIT[poll.kind] ?? UNIT.choice}
+      />
     </section>
   );
 }
@@ -72,6 +105,31 @@ function Options({ poll }: { poll: PublicPoll }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function Prompt({ text }: { text: string }) {
+  return (
+    <p className="flex items-center gap-4 text-3xl text-muted">
+      <Smartphone aria-hidden className="size-10 shrink-0 text-blue" />
+      {text}
+    </p>
+  );
+}
+
+function Stars() {
+  return (
+    <div className="space-y-8">
+      <ul aria-label="Rating from 1 to 5" className="flex gap-6">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <li key={n} className="flex flex-col items-center gap-2">
+            <Star aria-hidden className="size-20 text-amber" />
+            <span className="font-heading text-4xl font-bold">{n}</span>
+          </li>
+        ))}
+      </ul>
+      <Prompt text="Rate from 1 (low) to 5 (high) on your phone." />
+    </div>
   );
 }
 
@@ -107,9 +165,11 @@ const STATUS = {
 function VoteCount({
   total,
   status,
+  unit,
 }: {
   total: number;
   status: PublicPoll["status"];
+  unit: string;
 }) {
   const { text, Icon, tone } = STATUS[status];
   return (
@@ -122,7 +182,7 @@ function VoteCount({
         >
           {total}
         </span>
-        <span className="text-3xl text-muted">{plural(total, "vote")}</span>
+        <span className="text-3xl text-muted">{plural(total, unit)}</span>
       </p>
       <p
         className={`flex items-center gap-2.5 pb-1 text-2xl font-semibold ${tone}`}

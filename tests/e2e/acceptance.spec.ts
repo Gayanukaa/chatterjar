@@ -22,7 +22,12 @@ const SYNC = Math.max(
 );
 
 interface State {
-  poll: { id: string; total: number; correct?: string } | null;
+  poll: {
+    id: string;
+    total: number;
+    correct?: string;
+    results?: Record<string, number>;
+  } | null;
   questions: { id: string; text: string }[];
   tally: Record<string, number>;
   reactions: Record<string, number>;
@@ -618,5 +623,64 @@ test("11. with review on, a question shows only after the admin approves it", as
     expect(queue.some((q) => q.text === text)).toBe(false);
   } finally {
     await admin(request, "/api/admin/settings", { moderate: false });
+  }
+});
+
+test("12. word cloud takes one answer per device and shows words on reveal", async ({
+  browser,
+  request,
+}) => {
+  const { poll } = await admin(request, "/api/admin/poll", {
+    question: `${TAG} words ${Date.now()}`,
+    kind: "words",
+  });
+  expect(poll.kind).toBe("words");
+  expect(poll.options).toEqual([]);
+  await admin(request, "/api/admin/status", { id: poll.id, status: "open" });
+  // Unique words per run, so earlier runs cannot satisfy the checks.
+  const stamp = Date.now().toString(36);
+  const words = [`alpha ${stamp}`, `beta ${stamp}`];
+
+  const one = await device(browser);
+  const two = await device(browser);
+  for (const [i, { page }] of [one, two].entries()) {
+    await openTab(page, "Vote");
+    const box = page.getByLabel("Your answer");
+    await expect(box).toBeVisible({ timeout: SYNC });
+    // Upper case and extra spaces check the server-side normalization.
+    await box.fill(`  ${words[i].toUpperCase().replace(" ", "   ")} `);
+    await page.getByRole("button", { name: "Send answer" }).click();
+    await expect(page.getByText(`You answered ${words[i]}`)).toBeVisible({
+      timeout: SYNC,
+    });
+  }
+
+  const again = await one.page.request.post("/api/vote", {
+    data: { pollId: poll.id, text: "gamma" },
+  });
+  expect(again.status()).toBe(409);
+  expect((await again.json()).error).toBe("You already answered this poll.");
+  const bad = await one.page.request.post("/api/vote", {
+    data: { pollId: poll.id, text: "no <b>tags</b>" },
+  });
+  expect(bad.status()).toBe(400);
+
+  // Before the reveal only the answer count leaves the server.
+  await expect
+    .poll(() => pollTotal(request, poll.id), { timeout: SYNC })
+    .toBe(2);
+  expect((await getState(request)).poll?.results).toBeUndefined();
+
+  const screen = await device(browser, "/screen");
+  await expect(screen.page.getByTestId("screen-poll")).toBeVisible({
+    timeout: SYNC,
+  });
+  await admin(request, "/api/admin/status", {
+    id: poll.id,
+    status: "revealed",
+  });
+  const cloud = screen.page.getByTestId("word-cloud");
+  for (const word of words) {
+    await expect(cloud.getByText(word)).toBeVisible({ timeout: SYNC });
   }
 });

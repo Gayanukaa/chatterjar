@@ -65,6 +65,29 @@ describe("csvCell", () => {
 });
 
 describe("buildExport", () => {
+  it("exports every word cloud answer with its count", () => {
+    const words: Poll = {
+      ...poll,
+      id: "w1",
+      kind: "words",
+      options: [],
+      correct: undefined,
+    };
+    const data = buildExport({
+      room: "main",
+      now: NOW,
+      polls: [{ poll: words, votes: { planning: 3, tests: "5" } }],
+      questions: [],
+      tally: null,
+    });
+    expect(data.polls[0].kind).toBe("words");
+    expect(data.polls[0].options).toEqual([
+      { key: "tests", label: "tests", votes: 5 },
+      { key: "planning", label: "planning", votes: 3 },
+    ]);
+    expect(data.polls[0].total).toBe(8);
+  });
+
   it("builds polls with votes, totals and the correct option", () => {
     const data = sample();
     expect(data.room).toBe("main");
@@ -73,6 +96,7 @@ describe("buildExport", () => {
       {
         id: "p1",
         question: "Tabs, or spaces?",
+        kind: "choice",
         status: "revealed",
         options: [
           { key: "A", label: "Tabs", votes: 2 },

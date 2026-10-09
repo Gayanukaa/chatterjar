@@ -8,10 +8,17 @@ import {
   Lock,
   Play,
   Radio,
+  Star,
 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
-import type { PollStatus } from "@/lib/domain";
+import {
+  KIND_LABEL,
+  ratingAverage,
+  topWords,
+  type Option,
+  type PollStatus,
+} from "@/lib/domain";
 import { Button, ErrorText, FIELD, Section } from "./ui";
 import type { AdminPoll, PackSummary } from "./use-admin";
 
@@ -108,11 +115,19 @@ export function PollList({
         <ol className="grid gap-3">
           {polls.map((poll) => {
             const active = poll.id === activeId;
-            const counts = poll.options.map((o) =>
-              Number(poll.votes[o.key] ?? 0),
+            const kind = poll.kind ?? "choice";
+            // The same top words the screen shows, so the host can check them.
+            const words = kind === "words" ? topWords(poll.votes) : [];
+            const rows: Option[] = kind === "words" ? [] : poll.options;
+            const counts = rows.map((o) => Number(poll.votes[o.key] ?? 0));
+            const total = Object.values(poll.votes).reduce(
+              (a, b) => a + Number(b),
+              0,
             );
-            const total = counts.reduce((a, b) => a + b, 0);
             const max = Math.max(1, ...counts);
+            const average =
+              kind === "rating" ? ratingAverage(poll.votes) : null;
+            const unit = kind === "words" ? "answer" : "vote";
             return (
               <li
                 key={poll.id}
@@ -124,6 +139,9 @@ export function PollList({
                   >
                     {CHIP_LABEL[poll.status]}
                   </span>
+                  <span className="rounded-full bg-ink/[0.06] px-2.5 py-0.5 font-semibold text-ink">
+                    {KIND_LABEL[kind]}
+                  </span>
                   {active && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue/10 px-2.5 py-0.5 font-semibold text-blue">
                       <Radio aria-hidden className="size-3.5" />
@@ -131,59 +149,98 @@ export function PollList({
                     </span>
                   )}
                   <span className="ml-auto tabular-nums text-muted">
-                    {total} {total === 1 ? "vote" : "votes"}
+                    {total} {unit}
+                    {total === 1 ? "" : "s"}
                   </span>
                 </div>
                 <h3 className="mt-2 font-heading text-lg leading-snug font-semibold text-pretty">
                   {poll.question}
                 </h3>
-                <ul className="mt-3 grid gap-2.5">
-                  {poll.options.map((o, i) => {
-                    const correct =
-                      o.key === poll.correct &&
-                      (poll.status === "revealed" || peek === poll.id);
-                    const text =
-                      o.media && o.label === o.key
-                        ? fileName(o.media.src)
-                        : o.label;
-                    return (
-                      <li key={o.key} className="text-sm">
-                        <div className="flex items-start gap-2.5">
-                          <span
-                            className={`grid size-6 shrink-0 place-items-center rounded-md font-heading text-xs font-bold ${correct ? "bg-green text-white" : "bg-ink/[0.07] text-ink"}`}
-                          >
-                            {o.key}
-                          </span>
-                          <span className="min-w-0 flex-1 wrap-break-word">
-                            {text}
-                            {o.media && (
-                              <span className="text-muted">
-                                {" "}
-                                ({o.media.type})
+                {kind === "rating" && (
+                  <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold">
+                    <Star
+                      aria-hidden
+                      className="size-4 fill-amber text-amber"
+                    />
+                    {average === null
+                      ? "No ratings yet"
+                      : `Average ${average.toFixed(1)}`}
+                  </p>
+                )}
+                {kind === "words" &&
+                  (words.length === 0 ? (
+                    <p className="mt-3 text-sm text-muted">No answers yet.</p>
+                  ) : (
+                    <ul
+                      aria-label="Top answers"
+                      className="mt-3 flex flex-wrap gap-1.5"
+                    >
+                      {words.map(([w, n]) => (
+                        <li
+                          key={w}
+                          className="rounded-full bg-ink/[0.06] px-2.5 py-0.5 text-sm wrap-anywhere"
+                        >
+                          {w}{" "}
+                          <span className="text-muted tabular-nums">({n})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ))}
+                {rows.length > 0 && (
+                  <ul className="mt-3 grid gap-2.5">
+                    {rows.map((o, i) => {
+                      const correct =
+                        o.key === poll.correct &&
+                        (poll.status === "revealed" || peek === poll.id);
+                      const text =
+                        kind === "rating"
+                          ? `${o.key} ${o.key === "1" ? "star" : "stars"}`
+                          : o.media && o.label === o.key
+                            ? fileName(o.media.src)
+                            : o.label;
+                      return (
+                        <li key={o.key} className="text-sm">
+                          <div className="flex items-start gap-2.5">
+                            {kind === "choice" && (
+                              <span
+                                className={`grid size-6 shrink-0 place-items-center rounded-md font-heading text-xs font-bold ${correct ? "bg-green text-white" : "bg-ink/[0.07] text-ink"}`}
+                              >
+                                {o.key}
                               </span>
                             )}
-                            {correct && (
-                              <span className="ml-1.5 inline-flex items-center gap-1 align-[-2px] font-semibold text-green">
-                                <CircleCheck aria-hidden className="size-4" />
-                                Correct
-                              </span>
-                            )}
-                          </span>
-                          <span className="shrink-0 font-semibold tabular-nums">
-                            {counts[i]}
-                          </span>
-                        </div>
-                        <div className="mt-1.5 ml-8.5 h-1.5 overflow-hidden rounded-full bg-line">
+                            <span className="min-w-0 flex-1 wrap-break-word">
+                              {text}
+                              {o.media && (
+                                <span className="text-muted">
+                                  {" "}
+                                  ({o.media.type})
+                                </span>
+                              )}
+                              {correct && (
+                                <span className="ml-1.5 inline-flex items-center gap-1 align-[-2px] font-semibold text-green">
+                                  <CircleCheck aria-hidden className="size-4" />
+                                  Correct
+                                </span>
+                              )}
+                            </span>
+                            <span className="shrink-0 font-semibold tabular-nums">
+                              {counts[i]}
+                            </span>
+                          </div>
                           <div
-                            className={`h-full rounded-full transition-[width] duration-500 ease-out ${correct ? "bg-green" : "bg-blue"}`}
-                            style={{ width: `${(counts[i] / max) * 100}%` }}
-                          />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {!poll.correct ? (
+                            className={`mt-1.5 h-1.5 overflow-hidden rounded-full bg-line ${kind === "choice" ? "ml-8.5" : ""}`}
+                          >
+                            <div
+                              className={`h-full rounded-full transition-[width] duration-500 ease-out ${correct ? "bg-green" : "bg-blue"}`}
+                              style={{ width: `${(counts[i] / max) * 100}%` }}
+                            />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                {kind !== "choice" ? null : !poll.correct ? (
                   <p className="mt-3 text-sm text-muted">No correct option.</p>
                 ) : (
                   poll.status !== "revealed" && (
