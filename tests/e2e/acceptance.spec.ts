@@ -684,3 +684,18 @@ test("12. word cloud takes one answer per device and shows words on reveal", asy
     await expect(cloud.getByText(word)).toBeVisible({ timeout: SYNC });
   }
 });
+
+test("13. an unsupported ?lang= still renders English with html lang en", async ({
+  browser,
+}) => {
+  // A French browser with ?lang=xx: neither is supported, so en is used.
+  const { page } = await device(browser, "/?lang=xx", { locale: "fr-FR" });
+  await expect(page.getByRole("heading", { name: "Chatterjar" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Vote" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Questions" })).toBeVisible();
+  // "Live" needs hydrated state, so the locale provider has run by now.
+  await expect(page.getByText("Live", { exact: true })).toBeVisible({
+    timeout: SYNC,
+  });
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+});

@@ -12,6 +12,7 @@ import {
 import { ScreenTally } from "@/components/screen/screen-tally";
 import { ThemeToggle, useScreenTheme } from "@/components/screen/theme-toggle";
 import type { ScreenTheme } from "@/lib/screen-theme";
+import { useT } from "@/lib/i18n/react";
 import { useRoomState } from "@/lib/use-room-state";
 
 /** Projector view (1600 x 900): poll, questions, quiz tally and reactions. */
@@ -24,6 +25,7 @@ export function ScreenPage({
 }) {
   const { state, offline, missing } = useRoomState({ room, device: false });
   const { theme, toggle } = useScreenTheme(initialTheme);
+  const t = useT();
 
   return (
     <div
@@ -45,10 +47,10 @@ export function ScreenPage({
         ) : (
           <p className="text-3xl text-muted">
             {missing
-              ? "This room does not exist."
+              ? t("screen.roomMissing")
               : offline
-                ? "Cannot reach the room."
-                : "Loading the room..."}
+                ? t("screen.offline")
+                : t("screen.loading")}
           </p>
         )}
       </main>
@@ -63,7 +65,7 @@ export function ScreenPage({
               className="flex items-center gap-2 text-lg text-rose"
             >
               <WifiOff aria-hidden className="size-5 shrink-0" />
-              Connection lost. Trying again.
+              {t("screen.connectionLost")}
             </p>
           )}
           <ThemeToggle theme={theme} onToggle={toggle} />

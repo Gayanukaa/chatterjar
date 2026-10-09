@@ -12,29 +12,15 @@ import {
   RATING_OPTIONS,
   type PollKind,
   type PublicPoll,
+  isPollKind,
 } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import { ErrorNote, errorText } from "./error-note";
 
 const BUTTON =
   "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue px-4 text-base font-semibold text-white transition-colors hover:bg-blue/90 active:bg-ink disabled:bg-line disabled:text-muted";
 
-const COPY: Record<PollKind, { done: string; hint: string; unit: string }> = {
-  choice: {
-    done: "You voted",
-    hint: "Pick one option. You can vote once.",
-    unit: "vote",
-  },
-  words: {
-    done: "You answered",
-    hint: "Send one short answer. You can answer once.",
-    unit: "answer",
-  },
-  rating: {
-    done: "You rated",
-    hint: "Rate from 1 (low) to 5 (high). You can rate once.",
-    unit: "rating",
-  },
-};
+const UNIT = { choice: "vote", words: "answer", rating: "rating" } as const;
 
 /** Current poll: options, vote buttons, and results only after reveal. */
 export function VotePanel({
@@ -47,16 +33,15 @@ export function VotePanel({
   refresh: () => Promise<void>;
 }) {
   const room = useRoom();
+  const t = useT();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ pollId: string; text: string }>();
 
   if (!poll) {
     return (
       <div className="py-10 text-center">
-        <h2 className="text-2xl font-semibold">No poll yet</h2>
-        <p className="mt-2 text-muted">
-          The next poll shows here. This page updates by itself.
-        </p>
+        <h2 className="text-2xl font-semibold">{t("student.vote.noPoll")}</h2>
+        <p className="mt-2 text-muted">{t("student.vote.noPollHint")}</p>
       </div>
     );
   }
@@ -66,7 +51,7 @@ export function VotePanel({
   const canVote = poll.status === "open" && !vote && !sending;
   const revealed = poll.status === "revealed";
   // A cached state from before poll types has no kind.
-  const copy = COPY[poll.kind] ?? COPY.choice;
+  const kind: PollKind = isPollKind(poll.kind) ? poll.kind : "choice";
 
   /** Sends an option key or a word; true when the server took it. */
   async function send(payload: { option: string } | { text: string }) {
@@ -83,7 +68,7 @@ export function VotePanel({
     if (!res.ok) {
       setError({
         pollId: poll.id,
-        text: errorText(res.data, "Your vote did not go through. Try again."),
+        text: errorText(res.data, t("student.vote.failed")),
       });
     }
     return res.ok;
@@ -97,7 +82,7 @@ export function VotePanel({
         </h2>
         {poll.detail && (
           <p className="rounded-xl bg-line/60 px-3 py-2.5 text-[0.9375rem] text-ink">
-            <span className="font-semibold">Task: </span>
+            <span className="font-semibold">{t("student.vote.task")}</span>
             {poll.detail}
           </p>
         )}
@@ -108,18 +93,18 @@ export function VotePanel({
           <p className="flex items-center gap-2 font-semibold text-green">
             <Check aria-hidden className="size-5 shrink-0" />
             <span className="min-w-0 wrap-anywhere">
-              {copy.done} {vote}
+              {t(`student.vote.done.${kind}`, { vote })}
             </span>
           </p>
         )}
         {poll.status === "closed" && (
           <p className="flex items-center gap-2 text-muted">
             <Lock aria-hidden className="size-5 shrink-0" />
-            Voting is closed
+            {t("common.votingClosed")}
           </p>
         )}
         {poll.status === "open" && !vote && (
-          <p className="text-muted">{copy.hint}</p>
+          <p className="text-muted">{t(`student.vote.hint.${kind}`)}</p>
         )}
       </div>
 
@@ -141,7 +126,7 @@ export function VotePanel({
             <>
               {poll.correct && (
                 <p className="text-lg font-semibold text-green">
-                  Correct answer: {poll.correct}
+                  {t("common.correctAnswer", { answer: poll.correct })}
                 </p>
               )}
               <Bars
@@ -155,11 +140,13 @@ export function VotePanel({
             </>
           )}
           <p className="text-sm text-muted">
-            {poll.total} {copy.unit}
-            {poll.total === 1 ? "" : "s"}
+            {poll.total}{" "}
+            {t(`common.units.${UNIT[kind]}`, { count: poll.total })}
           </p>
           {poll.source && (
-            <p className="text-sm text-muted">Source: {poll.source}</p>
+            <p className="text-sm text-muted">
+              {t("common.source", { source: poll.source })}
+            </p>
           )}
         </section>
       )}
@@ -198,6 +185,7 @@ function ChoiceOptions({
   disabled: boolean;
   send: (option: string) => Promise<boolean>;
 }) {
+  const t = useT();
   return (
     <ul className="space-y-4">
       {poll.options.map((o) => {
@@ -223,7 +211,7 @@ function ChoiceOptions({
               className={BUTTON}
             >
               {mine && <Check aria-hidden className="size-5" />}
-              Vote {o.key}
+              {t("student.vote.option", { key: o.key })}
             </button>
           </li>
         );
@@ -239,6 +227,7 @@ function WordForm({
   disabled: boolean;
   send: (text: string) => Promise<boolean>;
 }) {
+  const t = useT();
   const [text, setText] = useState("");
 
   async function submit(e: React.FormEvent) {
@@ -250,7 +239,7 @@ function WordForm({
     <form onSubmit={submit} className="space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor="word-text" className="font-semibold">
-          Your answer
+          {t("student.vote.answerLabel")}
         </label>
         <span id="word-count" className="text-sm text-muted tabular-nums">
           {text.length}/{MAX_WORD}
@@ -267,7 +256,7 @@ function WordForm({
         className="block min-h-12 w-full rounded-xl bg-white px-3 text-base text-ink ring-1 ring-line placeholder:text-muted focus:ring-2 focus:ring-blue focus:outline-none"
       />
       <p id="word-rule" className="text-sm text-muted">
-        Letters, numbers, spaces and hyphens.
+        {t("student.vote.wordRule")}
       </p>
       <button
         type="submit"
@@ -275,7 +264,7 @@ function WordForm({
         className={BUTTON}
       >
         <Send aria-hidden className="size-5" />
-        Send answer
+        {t("student.vote.sendAnswer")}
       </button>
     </form>
   );
@@ -290,6 +279,7 @@ function RatingButtons({
   disabled: boolean;
   send: (option: string) => Promise<boolean>;
 }) {
+  const t = useT();
   return (
     <ul className="grid grid-cols-5 gap-2">
       {RATING_OPTIONS.map(({ key }) => {
@@ -298,7 +288,7 @@ function RatingButtons({
           <li key={key}>
             <button
               type="button"
-              aria-label={`Rate ${key}`}
+              aria-label={t("student.vote.rate", { key })}
               aria-pressed={mine}
               disabled={disabled}
               onClick={() => send(key)}

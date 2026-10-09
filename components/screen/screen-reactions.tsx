@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { REACTION_COLORS, REACTION_ICONS } from "@/components/reaction-icon";
-import { REACTIONS, reactionBursts, type Reaction } from "@/lib/domain";
+import { REACTION_TYPES, reactionBursts, type Reaction } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import styles from "./screen.module.css";
 
 // More icons than this at once turns into noise on the projector.
@@ -73,18 +74,19 @@ export function ReactionTotals({
 }: {
   reactions: Record<Reaction, number>;
 }) {
+  const t = useT();
   return (
     <ul
       data-testid="screen-reactions"
-      aria-label="Reactions"
+      aria-label={t("screen.reactions")}
       className="flex items-center gap-5 text-lg text-muted"
     >
-      {REACTIONS.map(({ type, label }) => {
+      {REACTION_TYPES.map((type) => {
         const Icon = REACTION_ICONS[type];
         return (
           <li key={type} className="flex items-center gap-1.5">
             <Icon aria-hidden className={`size-5 ${REACTION_COLORS[type]}`} />
-            <span className="sr-only">{label}:</span>
+            <span className="sr-only">{t(`common.reactions.${type}`)}:</span>
             <span className="font-semibold text-ink tabular-nums">
               {reactions[type] ?? 0}
             </span>

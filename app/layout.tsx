@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
+import { DEFAULT_LOCALE, t } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/i18n/react";
 import "./globals.css";
 
 const heading = Bricolage_Grotesque({
@@ -9,9 +11,8 @@ const heading = Bricolage_Grotesque({
 const body = Figtree({ variable: "--font-body", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chatterjar",
-  description:
-    "Live polls, questions and quizzes for talks, classes and conferences.",
+  title: t("common.appName"),
+  description: t("common.description"),
 };
 
 export const viewport: Viewport = {
@@ -22,11 +23,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // Static pages render en; LocaleProvider sets lang to the browser locale.
     <html
-      lang="en"
+      lang={DEFAULT_LOCALE}
       className={`${heading.variable} ${body.variable} antialiased`}
     >
-      <body className="min-h-dvh bg-paper text-ink font-body">{children}</body>
+      <body className="min-h-dvh bg-paper text-ink font-body">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

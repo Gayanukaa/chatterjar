@@ -3,6 +3,7 @@
 import { Download, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
+import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, Section } from "./ui";
 
 type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
@@ -19,6 +20,7 @@ export function RoomPanel({
   hasActive: boolean;
   onDone: () => void;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -29,7 +31,7 @@ export function RoomPanel({
     setNote("");
     const res = await act(path);
     if (res.ok) setNote(done);
-    else setError(res.data.error ?? "Could not do that. Try again.");
+    else setError(res.data.error ?? t("admin.room.failed"));
     setBusy(false);
     onDone();
   }
@@ -40,65 +42,47 @@ export function RoomPanel({
     setNote("");
     const failed = await download(`/api/admin/export?format=${format}`);
     if (failed) setError(failed);
-    else setNote("Results downloaded.");
+    else setNote(t("admin.room.downloaded"));
     setBusy(false);
   }
 
   function reset() {
-    const sure = window.confirm(
-      "Reset the room? This deletes all votes, questions and quiz answers, " +
-        "and withdraws the poll. The polls stay and you can open them again.",
-    );
-    if (sure)
-      void run(
-        "/api/admin/reset-room",
-        "Room reset. Votes, questions and quiz answers are cleared.",
-      );
+    if (window.confirm(t("admin.room.resetConfirm")))
+      void run("/api/admin/reset-room", t("admin.room.resetDone"));
   }
 
   return (
-    <Section id="room-heading" title="Room">
+    <Section id="room-heading" title={t("admin.room.heading")}>
       <div className="grid gap-4 rounded-xl border border-line bg-white p-4">
         <div className="grid gap-2">
           <Button
             onClick={() =>
-              run(
-                "/api/admin/withdraw",
-                "Poll withdrawn. Phones and the screen show no poll.",
-              )
+              run("/api/admin/withdraw", t("admin.room.withdrawDone"))
             }
             disabled={busy || !hasActive}
           >
             <EyeOff aria-hidden />
-            Withdraw poll
+            {t("admin.room.withdraw")}
           </Button>
-          <p className="text-sm text-muted">
-            Hides the current poll from phones and the screen. Open it again
-            from the poll list.
-          </p>
+          <p className="text-sm text-muted">{t("admin.room.withdrawHint")}</p>
         </div>
         <div className="grid gap-2">
           <Button onClick={() => save("csv")} disabled={busy}>
             <Download aria-hidden />
-            Download results (CSV)
+            {t("admin.room.csv")}
           </Button>
           <Button onClick={() => save("json")} disabled={busy}>
             <Download aria-hidden />
-            Download results (JSON)
+            {t("admin.room.json")}
           </Button>
-          <p className="text-sm text-muted">
-            Saves every poll, question (hidden ones too) and the quiz tally.
-          </p>
+          <p className="text-sm text-muted">{t("admin.room.downloadHint")}</p>
         </div>
         <div className="grid gap-2">
           <Button variant="danger" onClick={reset} disabled={busy}>
             <Trash2 aria-hidden />
-            Reset room
+            {t("admin.room.reset")}
           </Button>
-          <p className="text-sm text-muted">
-            Deletes all votes, questions and quiz answers, and closes every
-            poll.
-          </p>
+          <p className="text-sm text-muted">{t("admin.room.resetHint")}</p>
         </div>
         {error && <ErrorText>{error}</ErrorText>}
         <p role="status" className="min-h-5 text-sm font-medium text-green">

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { RID_PATTERN } from "./domain";
 import { MAIN_ROOM, currentRoom, roomFromUrl, runInRoom } from "./room";
 import { getRoomMeta, hashToken, roomExists } from "./rooms";
+import { t } from "@/lib/i18n";
 
 /** JSON response that is never cached. */
 export function json(data: unknown, status = 200) {
@@ -77,7 +78,7 @@ async function safely(fn: () => Promise<Response>): Promise<Response> {
     return await fn();
   } catch (err) {
     console.error(err);
-    return fail("Something went wrong. Try again.", 500);
+    return fail(t("api.serverError"), 500);
   }
 }
 
@@ -87,7 +88,7 @@ export function route(fn: Handler): Handler {
     safely(async () => {
       const room = roomFromUrl(req.nextUrl);
       if (!room || !(await roomExists(room))) {
-        return fail("Room not found.", 404);
+        return fail(t("api.roomNotFound"), 404);
       }
       return runInRoom(room, () => fn(req));
     });
@@ -96,7 +97,7 @@ export function route(fn: Handler): Handler {
 /** Wraps an admin route: 401 unless the key unlocks this room. */
 export function adminRoute(fn: Handler): Handler {
   return route(async (req) =>
-    (await isRoomAdmin(req)) ? fn(req) : fail("Admin key required.", 401),
+    (await isRoomAdmin(req)) ? fn(req) : fail(t("api.adminKey"), 401),
   );
 }
 
@@ -105,8 +106,8 @@ export function superRoute(fn: Handler): Handler {
   return (req) =>
     safely(async () => {
       if (!process.env.SUPER_ADMIN_KEY) {
-        return fail("Rooms are not enabled. Set SUPER_ADMIN_KEY.", 403);
+        return fail(t("api.roomsDisabled"), 403);
       }
-      return isSuper(req) ? fn(req) : fail("Owner key required.", 401);
+      return isSuper(req) ? fn(req) : fail(t("api.ownerKey"), 401);
     });
 }

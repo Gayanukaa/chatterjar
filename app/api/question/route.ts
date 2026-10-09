@@ -1,4 +1,5 @@
 import {
+  MAX_QUESTION,
   QUESTIONS_PER_MINUTE,
   questionScore,
   validateQuestion,
@@ -7,12 +8,13 @@ import { body, fail, getRid, json, route } from "@/lib/http";
 import { needsReview } from "@/lib/moderation";
 import { db, k, touch } from "@/lib/redis";
 import { invalidate } from "@/lib/state";
+import { t } from "@/lib/i18n";
 
 export const POST = route(async (req) => {
   const rid = getRid(req);
-  if (!rid) return fail("Reload the page and try again.", 400);
+  if (!rid) return fail(t("api.reload"), 400);
   const text = validateQuestion((await body(req)).text);
-  if (!text) return fail("Write a question of 1 to 200 characters.", 400);
+  if (!text) return fail(t("api.questionLength", { max: MAX_QUESTION }), 400);
   const r = db();
   const rl = k(`rl:${rid}`);
   const [count, , moderate] = await r
@@ -22,7 +24,7 @@ export const POST = route(async (req) => {
     .hget(k("settings"), "moderate")
     .exec<[number, number, unknown]>();
   if (count > QUESTIONS_PER_MINUTE) {
-    return fail("You can post 3 questions per minute. Try again soon.", 429);
+    return fail(t("api.questionRate", { count: QUESTIONS_PER_MINUTE }), 429);
   }
   const createdAt = Date.now();
   const id = `q${createdAt.toString(36)}${Math.random().toString(36).slice(2, 6)}`;

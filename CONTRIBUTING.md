@@ -37,6 +37,22 @@ The style test (`tests/unit/style.test.ts`) enforces the first three rules.
 - Students stay anonymous. Never collect names, emails or phone numbers.
 - Answers stay on the server until a poll is revealed.
 
+## Translations
+
+All user-facing text lives in `lib/i18n/messages/en.ts`, including API error messages.
+To add a language:
+
+1. Copy `lib/i18n/messages/en.ts` to `lib/i18n/messages/<code>.ts` (for example `si.ts`)
+   and type it: `import type { Messages } from "../index";` then
+   `export const si: Messages = { ... }`.
+2. Translate every value. Keep `{name}` placeholders as they are. Plural groups
+   (`one`, `other`) may add the forms your language needs (`zero`, `two`, `few`, `many`).
+3. Register it in the `catalogs` object in `lib/i18n/index.ts`.
+4. Run `npm run test:unit`. The catalog test fails on a missing or extra key, and so
+   does the type check in `npm run build`.
+
+Visitors get the first supported language from their browser, or `?lang=<code>`.
+
 ## Pull requests
 
 - Branch from `main` as `type/short-name` (for example `feat/word-cloud`).

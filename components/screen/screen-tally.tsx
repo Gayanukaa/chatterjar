@@ -1,8 +1,12 @@
+"use client";
+
 import { Bars } from "@/components/bars";
 import { PERSONAS, type Persona } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 
 /** Persona quiz tally in PERSONAS order. */
 export function ScreenTally({ tally }: { tally: Record<Persona, number> }) {
+  const t = useT();
   const items = PERSONAS.map((p) => ({
     key: p,
     label: p,
@@ -15,10 +19,10 @@ export function ScreenTally({ tally }: { tally: Record<Persona, number> }) {
         id="screen-tally-title"
         className="font-heading text-3xl font-semibold tracking-tight"
       >
-        Persona quiz
+        {t("screen.personaQuiz")}
       </h2>
       <p className="mt-1 text-xl text-muted">
-        {total} {total === 1 ? "answer" : "answers"}
+        {total} {t("common.units.answer", { count: total })}
       </p>
       <div className="mt-6">
         <Bars items={items} large />

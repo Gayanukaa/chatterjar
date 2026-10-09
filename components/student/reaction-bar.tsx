@@ -4,13 +4,15 @@ import { useEffect, useState } from "react";
 import { REACTION_COLORS, REACTION_ICONS } from "@/components/reaction-icon";
 import { useRoom } from "@/components/room";
 import { post, withRoom } from "@/lib/api";
-import { REACTIONS, type Reaction } from "@/lib/domain";
+import { REACTION_TYPES, type Reaction } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import { errorText } from "./error-note";
 import styles from "./reaction-bar.module.css";
 
 /** Sticky bar of four reaction buttons; reactions float up on the projector. */
 export function ReactionBar() {
   const room = useRoom();
+  const t = useT();
   // The count in the key restarts the pop on every accepted tap.
   const [popped, setPopped] = useState<{ type: Reaction; n: number } | null>(
     null,
@@ -30,10 +32,10 @@ export function ReactionBar() {
     const res = await post(withRoom("/api/react", room), { type });
     if (res.ok) setPopped((p) => ({ type, n: (p?.n ?? 0) + 1 }));
     else if (res.status === 429)
-      setNote({ text: "Slow down a little.", slow: true });
+      setNote({ text: t("student.reactions.slow"), slow: true });
     else
       setNote({
-        text: errorText(res.data, "Your reaction did not go through."),
+        text: errorText(res.data, t("student.reactions.failed")),
         slow: false,
       });
   }
@@ -48,11 +50,12 @@ export function ReactionBar() {
       </p>
       <div
         role="group"
-        aria-label="Send a reaction"
+        aria-label={t("student.reactions.group")}
         className="grid grid-cols-4 gap-1 py-1.5"
       >
-        {REACTIONS.map(({ type, label }) => {
+        {REACTION_TYPES.map((type) => {
           const Icon = REACTION_ICONS[type];
+          const label = t(`common.reactions.${type}`);
           const hit = popped?.type === type;
           return (
             <button
