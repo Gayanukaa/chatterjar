@@ -87,12 +87,14 @@ export function QuizPanel({
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <p className="text-muted">{t("student.quiz.intro")}</p>
+      <p className="text-muted">
+        {t("student.quiz.intro", { total: QUIZ.length })}
+      </p>
       {QUIZ.map((q, i) => (
         <fieldset key={q.question} className="space-y-2">
           <legend className="mb-2 font-heading text-lg leading-snug font-semibold">
             <span className="text-muted">
-              {t("student.quiz.progress", { n: i + 1 })}
+              {t("student.quiz.progress", { n: i + 1, total: QUIZ.length })}
             </span>
             {q.question}
           </legend>
@@ -126,7 +128,10 @@ export function QuizPanel({
       </button>
       {!complete && (
         <p className="-mt-3 text-center text-sm text-muted">
-          {t("student.quiz.answered", { n: answers.filter(Boolean).length })}
+          {t("student.quiz.answered", {
+            n: answers.filter(Boolean).length,
+            total: QUIZ.length,
+          })}
         </p>
       )}
     </form>
