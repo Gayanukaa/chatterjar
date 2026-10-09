@@ -4,6 +4,7 @@ import {
   isPersona,
   publicPoll,
   reactionTotals,
+  storedVote,
   votesFromScore,
   type DeviceState,
   type Persona,
@@ -114,7 +115,7 @@ export async function deviceState(
   const vote = pollId ? out.shift() : null;
   const [upvoted, persona] = out;
   return {
-    vote: vote == null ? null : String(vote),
+    vote: storedVote(vote),
     upvoted: Array.isArray(upvoted) ? upvoted.map(String) : [],
     persona: isPersona(persona) ? persona : null,
   };

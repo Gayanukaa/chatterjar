@@ -1,7 +1,7 @@
 {
   "id": "demo",
   "title": "Demo: warm-up polls",
-  "description": "Four general polls for any talk, class or event.",
+  "description": "Six general polls for any talk, class or event, with a word cloud and a rating.",
   "polls": [
     {
       "id": "familiar",
@@ -32,6 +32,16 @@
         { "label": "Neptune" }
       ],
       "correct": "B"
+    },
+    {
+      "id": "one-word",
+      "kind": "words",
+      "question": "Describe today's topic in one word."
+    },
+    {
+      "id": "useful",
+      "kind": "rating",
+      "question": "How useful has this session been so far?"
     },
     {
       "id": "wrap-up",

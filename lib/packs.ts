@@ -1,7 +1,7 @@
 import claudeCodeTalk from "@/data/packs/claude-code-talk.json";
 import demo from "@/data/packs/demo.json";
 import spotTheAi from "@/data/packs/spot-the-ai.json";
-import { parseOptions, type Poll } from "./domain";
+import { isPollKind, optionsFor, type Poll } from "./domain";
 
 export interface Pack {
   id: string;
@@ -9,10 +9,11 @@ export interface Pack {
   description: string;
   polls: {
     id: string;
+    kind?: string;
     question: string;
     detail?: string;
     source?: string;
-    options: unknown[];
+    options?: unknown[];
     correct?: string;
   }[];
 }
@@ -33,11 +34,16 @@ export const packSummaries = () =>
 export function packPolls(pack: Pack, now: number): Poll[] | null {
   const polls: Poll[] = [];
   for (const [i, p] of pack.polls.entries()) {
-    const options = parseOptions(p.options);
+    const kind = p.kind ?? "choice";
+    if (!isPollKind(kind)) return null;
+    const options = optionsFor(kind, p.options);
     if (!options || !p.question?.trim()) return null;
+    // Word clouds and ratings have no options to list and no correct answer.
+    if (kind !== "choice" && (p.options || p.correct)) return null;
     if (p.correct && !options.some((o) => o.key === p.correct)) return null;
     polls.push({
       id: `${pack.id}-${p.id}`,
+      kind,
       question: p.question.trim(),
       detail: p.detail,
       source: p.source,
