@@ -6,14 +6,26 @@ import { JoinQr } from "@/components/screen/join-qr";
 import { ScreenPoll } from "@/components/screen/screen-poll";
 import { ScreenQuestions } from "@/components/screen/screen-questions";
 import { ScreenTally } from "@/components/screen/screen-tally";
+import { ThemeToggle, useScreenTheme } from "@/components/screen/theme-toggle";
+import type { ScreenTheme } from "@/lib/screen-theme";
 import { useRoomState } from "@/lib/use-room-state";
 
 /** Projector view (1600 x 900): poll, top questions and the quiz tally. */
-export function ScreenPage({ room }: { room: string }) {
+export function ScreenPage({
+  room,
+  initialTheme,
+}: {
+  room: string;
+  initialTheme?: ScreenTheme;
+}) {
   const { state, offline, missing } = useRoomState({ room, device: false });
+  const { theme, toggle } = useScreenTheme(initialTheme);
 
   return (
-    <div className="flex min-h-dvh flex-col px-10 pt-10 pb-5 lg:h-dvh lg:overflow-hidden">
+    <div
+      data-theme={theme}
+      className="flex min-h-dvh flex-col bg-paper px-10 pt-10 pb-5 text-ink lg:h-dvh lg:overflow-hidden"
+    >
       <main className="grid min-h-0 flex-1 grid-cols-1 gap-10 lg:grid-cols-[minmax(0,2.4fr)_minmax(0,1fr)_minmax(0,1.15fr)]">
         {state ? (
           <>
@@ -36,17 +48,20 @@ export function ScreenPage({ room }: { room: string }) {
           </p>
         )}
       </main>
-      <footer className="mt-5 flex items-center justify-between gap-6">
+      <footer className="mt-5 flex flex-wrap items-center justify-between gap-6">
         <JoinHost />
-        {offline && state && (
-          <p
-            role="status"
-            className="flex items-center gap-2 text-lg text-rose"
-          >
-            <WifiOff aria-hidden className="size-5 shrink-0" />
-            Connection lost. Trying again.
-          </p>
-        )}
+        <div className="flex items-center gap-6">
+          {offline && state && (
+            <p
+              role="status"
+              className="flex items-center gap-2 text-lg text-rose"
+            >
+              <WifiOff aria-hidden className="size-5 shrink-0" />
+              Connection lost. Trying again.
+            </p>
+          )}
+          <ThemeToggle theme={theme} onToggle={toggle} />
+        </div>
       </footer>
     </div>
   );

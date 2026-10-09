@@ -10,10 +10,12 @@ import { QuizPanel } from "@/components/admin/quiz-panel";
 import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
 import { roomPath } from "@/lib/api";
+import { POLL_MS } from "@/lib/poll-interval";
 import { useRoomState } from "@/lib/use-room-state";
 
 export function AdminPage({ room: code }: { room: string }) {
-  const { key, data, offline, missing, keyError, signIn, act } = useAdmin(code);
+  const { key, data, offline, missing, keyError, signIn, act, download } =
+    useAdmin(code);
   const room = useRoomState({ room: code, device: false });
 
   if (missing || room.missing) {
@@ -69,7 +71,9 @@ export function AdminPage({ room: code }: { room: string }) {
           ) : (
             <span aria-hidden className="size-2 rounded-full bg-green" />
           )}
-          {lost ? "No connection. Trying again." : "Updates every 3 seconds"}
+          {lost
+            ? "No connection. Trying again."
+            : `Updates every ${Number((POLL_MS / 1000).toFixed(1))} seconds`}
         </p>
       </header>
 
@@ -83,6 +87,7 @@ export function AdminPage({ room: code }: { room: string }) {
         <div className="grid gap-10 lg:gap-8">
           <RoomPanel
             act={act}
+            download={download}
             hasActive={Boolean(data?.activeId)}
             onDone={() => void room.refresh()}
           />

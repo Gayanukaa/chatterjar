@@ -4,6 +4,7 @@ import { renderSVG } from "uqr";
 import { useMemo, useSyncExternalStore } from "react";
 import { useRoom } from "@/components/room";
 import { roomPath } from "@/lib/api";
+import styles from "./screen.module.css";
 
 const noop = () => () => {};
 
@@ -26,7 +27,7 @@ export function JoinQr() {
   return (
     <figure
       data-testid="screen-qr"
-      className="flex items-center gap-5 rounded-2xl bg-white p-4 ring-1 ring-line"
+      className={`flex items-center gap-5 rounded-2xl bg-white p-4 ring-1 ring-line ${styles.qrCard}`}
     >
       <div
         role="img"

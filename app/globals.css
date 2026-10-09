@@ -18,6 +18,20 @@ html {
   color-scheme: light;
 }
 
+/* Projector dark theme (/screen only); every color passes 4.5:1 on paper. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-paper: #0f1420;
+  --color-ink: #f1f4f9;
+  --color-muted: #a7b1c2;
+  --color-blue: #86a8ff;
+  --color-green: #4fd1a1;
+  --color-rose: #ff8fb1;
+  --color-amber: #f0bd5a;
+  --color-violet: #b4a3ff;
+  --color-line: #2b3446;
+}
+
 body {
   font-family: var(--font-body);
 }

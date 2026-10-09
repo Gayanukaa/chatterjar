@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { post, withRoom } from "@/lib/api";
 import type { Poll } from "@/lib/domain";
-import { POLL_MS } from "@/lib/use-room-state";
+import { POLL_MS } from "@/lib/poll-interval";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
 export interface PackSummary {
@@ -37,7 +37,7 @@ function saveKey(room: string, key: string | null) {
   }
 }
 
-/** Admin key (from #key=, ?key= or sessionStorage) and admin state every 3 s. */
+/** Admin key (from #key=, ?key= or sessionStorage) and admin state every POLL_MS. */
 export function useAdmin(room = "main") {
   // undefined: not read yet; null: no key, show the key form.
   const [key, setKey] = useState<string | null | undefined>(undefined);
@@ -122,5 +122,36 @@ export function useAdmin(room = "main") {
     [key, refresh, reject, room],
   );
 
-  return { key, data, offline, missing, keyError, signIn, act };
+  /** GETs a file with the key header and saves it; the key stays out of URLs. */
+  const download = useCallback(
+    async (path: string): Promise<string | null> => {
+      try {
+        const res = await fetch(withRoom(path, room), {
+          cache: "no-store",
+          headers: { "x-admin-key": key ?? "" },
+        });
+        if (res.status === 401) {
+          reject();
+          return "This admin key is wrong.";
+        }
+        if (!res.ok) return "Could not download the results. Try again.";
+        const name = /filename="([^"]+)"/.exec(
+          res.headers.get("content-disposition") ?? "",
+        )?.[1];
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = name ?? "chatterjar-results";
+        a.click();
+        // Revoke later: some browsers read the blob after click() returns.
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        return null;
+      } catch {
+        return "No connection. Try again.";
+      }
+    },
+    [key, reject, room],
+  );
+
+  return { key, data, offline, missing, keyError, signIn, act, download };
 }

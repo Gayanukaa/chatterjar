@@ -28,3 +28,11 @@
     color: var(--color-blue);
   }
 }
+
+/* Cameras read dark-on-white QR codes best, so this card stays light. */
+[data-theme="dark"] .qrCard {
+  --color-ink: #18202f;
+  --color-muted: #556073;
+  --color-line: #e3e7ef;
+  color: var(--color-ink);
+}

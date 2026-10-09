@@ -15,8 +15,11 @@ const ADMIN_KEY = process.env.BASE_URL
   : (process.env.E2E_ADMIN_KEY ?? "e2e-key");
 // Every question this suite posts starts with this tag, so cleanup finds it.
 const TAG = "E2E";
-// 3 s client poll + 1 s server cache + render, with headroom.
-const SYNC = 10_000;
+// Client poll + 1 s server cache + render: 3 polls, at least 10 s.
+const SYNC = Math.max(
+  10_000,
+  3 * (Number(process.env.NEXT_PUBLIC_POLL_MS) || 3000),
+);
 
 interface State {
   poll: { id: string; total: number; correct?: string } | null;
@@ -488,4 +491,44 @@ test("8. invite-only rooms keep data and admin keys separate", async ({
   ).toBeVisible({
     timeout: SYNC,
   });
+});
+
+test("9. admin exports results and the projector has a dark theme", async ({
+  browser,
+  request,
+}) => {
+  const pollId = await openPoll(request);
+  const { page } = await device(browser);
+  const text = `${TAG} export ${Date.now()}`;
+  const posted = await page.request.post("/api/question", { data: { text } });
+  expect(posted.status(), "export question").toBe(201);
+
+  const res = await request.get("/api/admin/export?format=json", {
+    headers: { "x-admin-key": ADMIN_KEY },
+  });
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-disposition"]).toMatch(
+    /^attachment; filename="chatterjar-main-\d{4}-\d{2}-\d{2}\.json"$/,
+  );
+  const data = await res.json();
+  expect(data.room).toBe("main");
+  expect(data.polls.some((p: { id: string }) => p.id === pollId)).toBe(true);
+  expect(data.questions.some((q: { text: string }) => q.text === text)).toBe(
+    true,
+  );
+
+  const csv = await request.get("/api/admin/export?format=csv", {
+    headers: { "x-admin-key": ADMIN_KEY },
+  });
+  expect(csv.status()).toBe(200);
+  expect(await csv.text()).toContain(text);
+
+  const anonymous = await request.get("/api/admin/export?format=json");
+  expect(anonymous.status()).toBe(401);
+
+  const screen = await device(browser, "/screen?theme=dark");
+  const root = screen.page.locator("[data-theme]").first();
+  await expect(root).toHaveAttribute("data-theme", "dark", { timeout: SYNC });
+  await screen.page.getByRole("button", { name: "Light theme" }).click();
+  await expect(root).toHaveAttribute("data-theme", "light");
 });
