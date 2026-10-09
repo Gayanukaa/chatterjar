@@ -4,7 +4,8 @@ import { Check, Lock } from "lucide-react";
 import { useState } from "react";
 import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";
-import { post } from "@/lib/api";
+import { post, withRoom } from "@/lib/api";
+import { useRoom } from "@/components/room";
 import type { PublicPoll } from "@/lib/domain";
 import { ErrorNote, errorText } from "./error-note";
 
@@ -18,6 +19,7 @@ export function VotePanel({
   myVote: string | null;
   refresh: () => Promise<void>;
 }) {
+  const room = useRoom();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<{ pollId: string; text: string }>();
 
@@ -41,7 +43,10 @@ export function VotePanel({
     if (!poll) return;
     setSending(true);
     setError(undefined);
-    const res = await post("/api/vote", { pollId: poll.id, option });
+    const res = await post(withRoom("/api/vote", room), {
+      pollId: poll.id,
+      option,
+    });
     // Stay disabled until the refresh shows the vote from the server.
     if (res.ok) await refresh();
     setSending(false);

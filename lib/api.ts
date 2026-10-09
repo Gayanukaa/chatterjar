@@ -30,3 +30,16 @@ export async function post<T = Record<string, unknown>>(
     };
   }
 }
+
+/** Adds ?room= to an API path; the main room needs no parameter. */
+export function withRoom(path: string, room: string) {
+  if (room === "main") return path;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}room=${encodeURIComponent(room)}`;
+}
+
+/** Site path of a room page: "" (phone), "screen" or "admin". */
+export function roomPath(room: string, page = "") {
+  const base = room === "main" ? "" : `/r/${room}`;
+  return page ? `${base}/${page}` : base || "/";
+}

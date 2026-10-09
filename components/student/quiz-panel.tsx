@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Bars } from "@/components/bars";
 import quiz from "@/data/quiz.json";
-import { post } from "@/lib/api";
+import { post, withRoom } from "@/lib/api";
+import { useRoom } from "@/components/room";
 import { PERSONAS, isPersona, type Persona } from "@/lib/domain";
 import { ErrorNote, errorText } from "./error-note";
 
@@ -22,6 +23,7 @@ export function QuizPanel({
   tally: Record<Persona, number> | null;
   refresh: () => Promise<void>;
 }) {
+  const room = useRoom();
   const [answers, setAnswers] = useState<(Persona | null)[]>(() =>
     QUIZ.map(() => null),
   );
@@ -35,7 +37,9 @@ export function QuizPanel({
     e.preventDefault();
     setSending(true);
     setError(null);
-    const res = await post<{ persona?: string }>("/api/quiz", { answers });
+    const res = await post<{ persona?: string }>(withRoom("/api/quiz", room), {
+      answers,
+    });
     // Stay disabled until the refresh shows the persona from the server.
     if (res.ok && isPersona(res.data.persona)) await refresh();
     setSending(false);

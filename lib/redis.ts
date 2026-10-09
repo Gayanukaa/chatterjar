@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { MAIN_ROOM, currentRoom } from "./room";
 
 let client: Redis | undefined;
 const prefix = process.env.REDIS_PREFIX ?? "";
@@ -20,8 +21,14 @@ export function db(): Redis {
   return client;
 }
 
-/** Prefixes a key so e2e runs (REDIS_PREFIX=e2e:) never touch live data. */
-export const k = (key: string) => prefix + key;
+/** Key in the current room; main keeps the original unscoped names. */
+export function k(key: string) {
+  const room = currentRoom();
+  return prefix + (room === MAIN_ROOM ? "" : `r:${room}:`) + key;
+}
+
+/** Global key outside any room (the room registry); REDIS_PREFIX still applies. */
+export const kg = (key: string) => prefix + key;
 
 const ttlDays = Number(process.env.DATA_TTL_DAYS ?? 30);
 // Audience data expires this long after its last write; 0 keeps it forever.

@@ -420,3 +420,72 @@ test("7. admin can withdraw the poll and reset the room", async ({
     .click({ timeout: SYNC });
   await expect(student.page.getByText("You voted B")).toBeVisible();
 });
+
+test("8. invite-only rooms keep data and admin keys separate", async ({
+  browser,
+  request,
+}) => {
+  test.skip(Boolean(process.env.BASE_URL), "creates and deletes rooms");
+  const owner = { "x-admin-key": "e2e-super-key" };
+  const made = await request.post("/api/super/rooms", {
+    headers: owner,
+    data: { title: `${TAG} room ${Date.now()}` },
+  });
+  expect(made.status()).toBe(201);
+  const { code, token } = (await made.json()).room;
+  const inRoom = (path: string) => `${path}?room=${code}`;
+
+  // The room token unlocks only its room; the main key does not unlock it.
+  const poll = await request.post(inRoom("/api/admin/poll"), {
+    headers: { "x-admin-key": token },
+    data: {
+      question: `${TAG} room poll`,
+      options: [{ label: "Yes" }, { label: "No" }],
+    },
+  });
+  expect(poll.status()).toBe(201);
+  const pollId = (await poll.json()).poll.id;
+  const tokenOnMain = await request.get("/api/admin/state", {
+    headers: { "x-admin-key": token },
+  });
+  expect(tokenOnMain.status()).toBe(401);
+  const mainOnRoom = await request.get(inRoom("/api/admin/state"), {
+    headers: { "x-admin-key": ADMIN_KEY },
+  });
+  expect(mainOnRoom.status()).toBe(401);
+  await request.post(inRoom("/api/admin/status"), {
+    headers: { "x-admin-key": token },
+    data: { id: pollId, status: "open" },
+  });
+
+  // A phone on /r/<code> votes and asks; the main room sees none of it.
+  const phone = await device(browser, `/r/${code}`);
+  await openTab(phone.page, "Vote");
+  await phone.page
+    .getByRole("button", { name: "Vote A" })
+    .click({ timeout: SYNC });
+  await expect(phone.page.getByText("You voted A")).toBeVisible();
+  const text = `${TAG} room question ${Date.now()}`;
+  await openTab(phone.page, "Questions");
+  await phone.page.getByLabel("Your question").fill(text);
+  await phone.page.getByRole("button", { name: "Send question" }).click();
+  await expect(
+    phone.page.getByTestId("question").filter({ hasText: text }),
+  ).toBeVisible({ timeout: SYNC });
+  const main = await getState(request);
+  expect(main.poll?.id).not.toBe(pollId);
+  expect(main.questions.some((q) => q.text === text)).toBe(false);
+
+  // Deleting the room removes it for everyone.
+  const gone = await request.delete(`/api/super/rooms?code=${code}`, {
+    headers: owner,
+  });
+  expect(gone.ok()).toBe(true);
+  expect((await request.get(inRoom("/api/room"))).status()).toBe(404);
+  await phone.page.reload();
+  await expect(
+    phone.page.getByRole("tabpanel").getByText("This room does not exist"),
+  ).toBeVisible({
+    timeout: SYNC,
+  });
+});

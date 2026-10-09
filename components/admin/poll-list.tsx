@@ -102,7 +102,7 @@ export function PollList({
         <p className="text-muted">Loading polls...</p>
       ) : polls.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-4 py-6 text-muted">
-          No polls yet. Load the preset polls or create a poll.
+          No polls yet. Load a content pack or create a poll.
         </p>
       ) : (
         <ol className="grid gap-3">

@@ -145,6 +145,7 @@ Open http://localhost:3000. For a real event, put an HTTPS reverse proxy (Caddy,
 | -------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
 | `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Upstash integration | Redis REST connection (the app falls back to `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) |
 | `ADMIN_KEY`                            | You                 | Unlocks `/admin` and the admin API                                                                    |
+| `SUPER_ADMIN_KEY`                      | Optional            | Owner key for `/admin/rooms`; enables invite-only rooms                                               |
 | `REDIS_PREFIX`                         | Optional            | Prefixes every Redis key, so tests and demos never touch live data                                    |
 | `DATA_TTL_DAYS`                        | Optional            | Days to keep votes, questions and quiz answers after the last write (default 30, `0` keeps them)      |
 
@@ -166,6 +167,19 @@ Open http://localhost:3000. For a real event, put an HTTPS reverse proxy (Caddy,
   <img src="docs/assets/admin.png" width="820" alt="Admin console with the poll list, room controls, poll form, questions and quiz tally" /><br/>
   <sub><b>Admin console</b> (<code>/admin</code>): answers stay hidden until you reveal, so you can share this screen.</sub>
 </p>
+
+<br/>
+
+## Rooms (invite-only)
+
+One deployment can host many talks at once. Set `SUPER_ADMIN_KEY`, open `/admin/rooms` and create a room for each talk or speaker:
+
+- Each room gets a short code and its own pages: `/r/<code>` (phones), `/r/<code>/screen` (projector) and `/r/<code>/admin` (speaker).
+- Each room has its own admin link. Its token is shown once, stored only as a hash, and unlocks only that room. Hand it to the speaker.
+- Rooms never share data: polls, votes, questions and quiz answers live under separate Redis keys.
+- `/`, `/screen` and `/admin` are the main room, unlocked by `ADMIN_KEY`. Without `SUPER_ADMIN_KEY`, the app runs as a single room.
+
+Only the owner can create rooms, so a public deployment cannot fill up with strangers' rooms.
 
 <br/>
 

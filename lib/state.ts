@@ -11,6 +11,7 @@ import {
   type RoomState,
 } from "./domain";
 import { db, k } from "./redis";
+import { currentRoom } from "./room";
 
 export type SharedState = Omit<RoomState, "me">;
 type Hash = Record<string, unknown> | null;
@@ -19,11 +20,11 @@ type Hash = Record<string, unknown> | null;
 const TTL_MS = 1000;
 const TOP_QUESTIONS = 50;
 const NO_DEVICE: DeviceState = { vote: null, upvoted: [], persona: null };
-let cache: { at: number; data: SharedState } | null = null;
+const cache = new Map<string, { at: number; data: SharedState }>();
 
 /** Drops the cache so this instance shows its own writes at once. */
 export function invalidate() {
-  cache = null;
+  cache.delete(currentRoom());
 }
 
 function fullTally(raw: Hash): Record<Persona, number> {
@@ -33,7 +34,9 @@ function fullTally(raw: Hash): Record<Persona, number> {
 
 /** State every phone shares: active poll, top questions, tally, reset epoch. */
 export async function sharedState(): Promise<SharedState> {
-  if (cache && Date.now() - cache.at < TTL_MS) return cache.data;
+  const room = currentRoom();
+  const hit = cache.get(room);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
   const r = db();
   const [activeRaw, ranked, tally, epoch] = await r
     .pipeline()
@@ -91,7 +94,7 @@ export async function sharedState(): Promise<SharedState> {
     tally: fullTally(tally as Hash),
     epoch: Number(epoch ?? 0),
   };
-  cache = { at: Date.now(), data };
+  cache.set(room, { at: Date.now(), data });
   return data;
 }
 
