@@ -25,6 +25,7 @@ interface State {
   poll: { id: string; total: number; correct?: string } | null;
   questions: { id: string; text: string }[];
   tally: Record<string, number>;
+  reactions: Record<string, number>;
 }
 
 const opened: BrowserContext[] = [];
@@ -72,6 +73,11 @@ async function pollTotal(request: APIRequestContext, pollId: string) {
 async function tallyTotal(request: APIRequestContext) {
   const { tally } = await getState(request);
   return Object.values(tally).reduce((sum, n) => sum + Number(n), 0);
+}
+
+async function reactionTotal(request: APIRequestContext) {
+  const { reactions } = await getState(request);
+  return Object.values(reactions).reduce((sum, n) => sum + Number(n), 0);
 }
 
 /** Hides questions from earlier runs, so new ones still make the top 30. */
@@ -531,4 +537,33 @@ test("9. admin exports results and the projector has a dark theme", async ({
   await expect(root).toHaveAttribute("data-theme", "dark", { timeout: SYNC });
   await screen.page.getByRole("button", { name: "Light theme" }).click();
   await expect(root).toHaveAttribute("data-theme", "light");
+});
+
+test("10. reactions add to the totals and the 11th in 10 s is rejected", async ({
+  browser,
+}) => {
+  const { page } = await device(browser);
+  await expect(page.getByRole("button", { name: "Love it" })).toBeVisible({
+    timeout: SYNC,
+  });
+  const before = await reactionTotal(page.request);
+
+  // All 11 go out back to back, well inside the 10 s window.
+  const types = ["love", "idea", "applause", "confused"];
+  for (let i = 1; i <= 11; i++) {
+    const res = await page.request.post("/api/react", {
+      data: { type: types[i % types.length] },
+    });
+    expect(res.status(), `reaction ${i}`).toBe(i <= 10 ? 200 : 429);
+    if (i > 10) expect((await res.json()).error).toBe("Slow down a little.");
+  }
+  await expect
+    .poll(() => reactionTotal(page.request), { timeout: SYNC })
+    .toBe(before + 10);
+
+  const screen = await page.context().newPage();
+  await screen.goto("/screen");
+  await expect(screen.getByTestId("screen-reactions")).toBeVisible({
+    timeout: SYNC,
+  });
 });

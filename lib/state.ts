@@ -3,6 +3,7 @@ import {
   createdAtFromScore,
   isPersona,
   publicPoll,
+  reactionTotals,
   votesFromScore,
   type DeviceState,
   type Persona,
@@ -32,18 +33,19 @@ function fullTally(raw: Hash): Record<Persona, number> {
   return Object.fromEntries(entries) as Record<Persona, number>;
 }
 
-/** State every phone shares: active poll, top questions, tally, reset epoch. */
+/** State every phone shares: poll, top questions, tally, reactions, epoch. */
 export async function sharedState(): Promise<SharedState> {
   const room = currentRoom();
   const hit = cache.get(room);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
   const r = db();
-  const [activeRaw, ranked, tally, epoch] = await r
+  const [activeRaw, ranked, tally, epoch, reactions] = await r
     .pipeline()
     .get(k("poll:active"))
     .zrange(k("q:rank"), 0, TOP_QUESTIONS - 1, { rev: true, withScores: true })
     .hgetall(k("quiz:tally"))
     .get(k("room:epoch"))
+    .hgetall(k("reactions"))
     .exec<unknown[]>();
   const activeId = activeRaw == null ? null : String(activeRaw);
 
@@ -93,6 +95,7 @@ export async function sharedState(): Promise<SharedState> {
     questions,
     tally: fullTally(tally as Hash),
     epoch: Number(epoch ?? 0),
+    reactions: reactionTotals(reactions as Hash),
   };
   cache.set(room, { at: Date.now(), data });
   return data;

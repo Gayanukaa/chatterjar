@@ -19,7 +19,7 @@ async function scanKeys(pattern: string): Promise<string[]> {
   return found;
 }
 
-/** Clears votes, questions and quiz answers, closes every poll and withdraws it. */
+/** Clears votes, questions, quiz answers and reactions; closes every poll. */
 export const POST = adminRoute(async () => {
   const r = db();
   const [ids, questionIds] = await r
@@ -34,6 +34,7 @@ export const POST = adminRoute(async () => {
   const deviceKeys = [
     ...(await scanKeys(k("qv:*"))),
     ...(await scanKeys(k("rl:*"))),
+    ...(await scanKeys(k("rr:*"))),
   ];
 
   const doomed = [
@@ -43,6 +44,7 @@ export const POST = adminRoute(async () => {
     k("quiz:tally"),
     k("quiz:done"),
     k("quiz:who"),
+    k("reactions"),
     ...pollIds.flatMap((id) => [k(`poll:${id}:votes`), k(`poll:${id}:voters`)]),
     ...questionIds.map((id) => k(`q:${String(id)}`)),
     ...deviceKeys,
