@@ -28,6 +28,8 @@ services:
       KV_REST_API_URL: http://srh:80
       KV_REST_API_TOKEN: ${SRH_TOKEN:-change-me-srh-token}
       ADMIN_KEY: ${ADMIN_KEY:?Set ADMIN_KEY, for example with openssl rand -hex 24}
+      # Optional: owner key that unlocks /admin/rooms (invite-only rooms).
+      SUPER_ADMIN_KEY: ${SUPER_ADMIN_KEY:-}
     depends_on:
       - srh
     restart: unless-stopped

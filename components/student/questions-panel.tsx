@@ -2,7 +2,8 @@
 
 import { ArrowBigUp, Send } from "lucide-react";
 import { useState } from "react";
-import { post } from "@/lib/api";
+import { post, withRoom } from "@/lib/api";
+import { useRoom } from "@/components/room";
 import { MAX_QUESTION, type Question } from "@/lib/domain";
 import { ErrorNote, errorText } from "./error-note";
 
@@ -16,6 +17,7 @@ export function QuestionsPanel({
   upvoted: string[];
   refresh: () => Promise<void>;
 }) {
+  const room = useRoom();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sentNote, setSentNote] = useState(false);
@@ -27,7 +29,7 @@ export function QuestionsPanel({
     setSending(true);
     setError(null);
     setSentNote(false);
-    const res = await post("/api/question", { text });
+    const res = await post(withRoom("/api/question", room), { text });
     setSending(false);
     if (res.ok) {
       setText("");
@@ -41,7 +43,7 @@ export function QuestionsPanel({
   async function upvote(id: string) {
     setError(null);
     setMine((m) => [...m, id]);
-    const res = await post("/api/upvote", { id });
+    const res = await post(withRoom("/api/upvote", room), { id });
     if (res.ok) await refresh();
     else {
       setMine((m) => m.filter((x) => x !== id));

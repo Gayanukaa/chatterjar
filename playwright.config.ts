@@ -29,6 +29,7 @@ export default defineConfig({
           ...(process.env as Record<string, string>),
           REDIS_PREFIX: "e2e:",
           ADMIN_KEY: adminKey,
+          SUPER_ADMIN_KEY: "e2e-super-key",
         },
       },
 });

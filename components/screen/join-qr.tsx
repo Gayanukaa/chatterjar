@@ -2,21 +2,25 @@
 
 import { renderSVG } from "uqr";
 import { useMemo, useSyncExternalStore } from "react";
+import { useRoom } from "@/components/room";
+import { roomPath } from "@/lib/api";
 
 const noop = () => () => {};
 
 /** Scan-to-join QR code for this site's phone page; empty on the server render. */
 export function JoinQr() {
+  const room = useRoom();
   const origin = useSyncExternalStore(
     noop,
     () => window.location.origin,
     () => "",
   );
-  const host = origin.replace(/^https?:\/\//, "");
+  const url = origin ? origin + (room === "main" ? "" : roomPath(room)) : "";
+  const host = url.replace(/^https?:\/\//, "");
   // The SVG is built locally from our own URL, so inserting it is safe.
   const svg = useMemo(
-    () => (origin ? renderSVG(origin, { border: 1, ecc: "M" }) : ""),
-    [origin],
+    () => (url ? renderSVG(url, { border: 1, ecc: "M" }) : ""),
+    [url],
   );
   if (!svg) return null;
   return (
