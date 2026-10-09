@@ -36,3 +36,31 @@
   --color-line: #e3e7ef;
   color: var(--color-ink);
 }
+
+/* Reaction icons rise from the bottom edge; JS skips them on reduced motion. */
+.float {
+  position: absolute;
+  bottom: -6rem;
+  animation: rise 3.2s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 0) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -12vh) scale(1);
+  }
+  50% {
+    transform: translate(calc(-50% + 1.5rem), -45vh) scale(1);
+  }
+  80% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% - 1rem), -80vh) scale(0.9);
+  }
+}

@@ -51,10 +51,23 @@ export interface RoomState {
   poll: PublicPoll | null;
   questions: Question[];
   tally: Record<Persona, number>;
+  // Running totals since the last room reset.
+  reactions: Record<Reaction, number>;
   // Bumped by room and quiz resets so phones refetch their device state.
   epoch: number;
   me: DeviceState;
 }
+
+export const REACTIONS = [
+  { type: "applause", label: "Applause" },
+  { type: "love", label: "Love it" },
+  { type: "idea", label: "Great point" },
+  { type: "confused", label: "I'm lost" },
+] as const;
+export type Reaction = (typeof REACTIONS)[number]["type"];
+export const REACTION_TYPES: readonly Reaction[] = REACTIONS.map((r) => r.type);
+export const REACTIONS_PER_WINDOW = 10;
+export const REACTION_WINDOW_S = 10;
 
 export const MAX_QUESTION = 200;
 export const QUESTIONS_PER_MINUTE = 3;
@@ -139,4 +152,36 @@ export function parseOptions(raw: unknown): Option[] | null {
     options.push(option);
   }
   return options;
+}
+
+export const isReaction = (v: unknown): v is Reaction =>
+  typeof v === "string" && (REACTION_TYPES as string[]).includes(v);
+
+/** Every reaction type with its count; missing or bad values become 0. */
+export function reactionTotals(
+  raw: Record<string, unknown> | null,
+): Record<Reaction, number> {
+  const entries = REACTION_TYPES.map((t) => [t, Number(raw?.[t] ?? 0) || 0]);
+  return Object.fromEntries(entries) as Record<Reaction, number>;
+}
+
+/** New reactions between two snapshots, types interleaved, at most max items. */
+export function reactionBursts(
+  prev: Record<Reaction, number> | null,
+  next: Record<Reaction, number>,
+  max: number,
+): Reaction[] {
+  if (!prev) return [];
+  // A reset drops totals below the last snapshot; that is not a reaction.
+  const left = REACTION_TYPES.map((t) => Math.max(0, next[t] - prev[t]));
+  const out: Reaction[] = [];
+  while (out.length < max && left.some((n) => n > 0)) {
+    REACTION_TYPES.forEach((t, i) => {
+      if (left[i] > 0 && out.length < max) {
+        out.push(t);
+        left[i]--;
+      }
+    });
+  }
+  return out;
 }

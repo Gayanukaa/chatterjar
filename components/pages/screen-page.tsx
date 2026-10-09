@@ -5,12 +5,16 @@ import { JoinHost } from "@/components/screen/join-host";
 import { JoinQr } from "@/components/screen/join-qr";
 import { ScreenPoll } from "@/components/screen/screen-poll";
 import { ScreenQuestions } from "@/components/screen/screen-questions";
+import {
+  ReactionLayer,
+  ReactionTotals,
+} from "@/components/screen/screen-reactions";
 import { ScreenTally } from "@/components/screen/screen-tally";
 import { ThemeToggle, useScreenTheme } from "@/components/screen/theme-toggle";
 import type { ScreenTheme } from "@/lib/screen-theme";
 import { useRoomState } from "@/lib/use-room-state";
 
-/** Projector view (1600 x 900): poll, top questions and the quiz tally. */
+/** Projector view (1600 x 900): poll, questions, quiz tally and reactions. */
 export function ScreenPage({
   room,
   initialTheme,
@@ -48,8 +52,10 @@ export function ScreenPage({
           </p>
         )}
       </main>
+      {state && <ReactionLayer reactions={state.reactions} />}
       <footer className="mt-5 flex flex-wrap items-center justify-between gap-6">
         <JoinHost />
+        {state && <ReactionTotals reactions={state.reactions} />}
         <div className="flex items-center gap-6">
           {offline && state && (
             <p
