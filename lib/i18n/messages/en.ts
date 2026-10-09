@@ -86,12 +86,13 @@ export const en = {
       result: { a: "You are a {persona}", an: "You are an {persona}" },
       inCount: "Your answer is in the room count below.",
       tallyHeading: "The room so far",
-      intro: "Answer 5 short questions. Pick the answer that fits you best.",
-      progress: "{n}/5 ",
+      intro:
+        "Answer {total} short questions. Pick the answer that fits you best.",
+      progress: "{n}/{total} ",
       failed: "Your answers did not go through.",
       checking: "Checking...",
       submit: "See my persona",
-      answered: "{n} of 5 answered",
+      answered: "{n} of {total} answered",
     },
     reactions: {
       group: "Send a reaction",
@@ -263,7 +264,7 @@ export const en = {
         "Saves every poll, question (hidden ones too) and the quiz tally.",
       reset: "Reset room",
       resetHint:
-        "Deletes all votes, questions and quiz answers, and closes every poll.",
+        "Deletes all votes, questions, quiz answers and reactions, and closes every poll.",
     },
   },
   rooms: {

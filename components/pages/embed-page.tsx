@@ -77,7 +77,7 @@ export function EmbedPage({
           className="absolute right-4 bottom-3 flex items-center gap-2 text-lg text-rose"
         >
           <WifiOff aria-hidden className="size-5 shrink-0" />
-          Connection lost. Trying again.
+          {t("screen.connectionLost")}
         </p>
       )}
     </div>
