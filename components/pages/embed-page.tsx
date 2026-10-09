@@ -7,6 +7,7 @@ import { ScreenPoll } from "@/components/screen/screen-poll";
 import { ScreenQuestions } from "@/components/screen/screen-questions";
 import { ScreenTally } from "@/components/screen/screen-tally";
 import type { EmbedOptions } from "@/lib/embed";
+import { useT } from "@/lib/i18n/react";
 import { useRoomState } from "@/lib/use-room-state";
 
 // The question list must clip, not scroll, inside a slide.
@@ -20,10 +21,11 @@ export function EmbedPage({
   room: string;
   options: EmbedOptions;
 }) {
+  const t = useT();
   const { state, offline, missing } = useRoomState({ room, device: false });
 
   let body;
-  if (missing) body = <Note>This room does not exist.</Note>;
+  if (missing) body = <Note>{t("screen.roomMissing")}</Note>;
   else if (show === "qr") {
     // The QR needs no room data, so it shows before the first poll returns.
     body = (
@@ -33,9 +35,7 @@ export function EmbedPage({
       </div>
     );
   } else if (!state) {
-    body = (
-      <Note>{offline ? "Cannot reach the room." : "Loading the room..."}</Note>
-    );
+    body = <Note>{offline ? t("screen.offline") : t("screen.loading")}</Note>;
   } else if (show === "poll") body = <ScreenPoll poll={state.poll} />;
   else if (show === "questions") {
     body = <ScreenQuestions questions={state.questions} />;

@@ -4,26 +4,28 @@ import { Code, Link2 } from "lucide-react";
 import { useState, useSyncExternalStore } from "react";
 import { roomPath } from "@/lib/api";
 import { embedQuery, type EmbedOptions, type EmbedShow } from "@/lib/embed";
+import { useT } from "@/lib/i18n/react";
 import { Button, FIELD, Section } from "./ui";
 
 const noop = () => () => {};
 
-const SHOW_LABEL: Record<EmbedShow, string> = {
-  poll: "Current poll",
-  questions: "Top questions",
-  tally: "Persona quiz",
-  qr: "Join QR code",
-  all: "Everything (like the projector)",
-};
+const SHOW_KEY = {
+  poll: "admin.embed.showPoll",
+  questions: "admin.embed.showQuestions",
+  tally: "admin.embed.showTally",
+  qr: "admin.embed.showQr",
+  all: "admin.embed.showAll",
+} as const satisfies Record<EmbedShow, string>;
 
 /** Embed URL and iframe code for slides (PowerPoint, reveal.js, any page). */
 export function EmbedPanel({ room }: { room: string }) {
+  const t = useT();
   const [opts, setOpts] = useState<EmbedOptions>({
     show: "poll",
     theme: "light",
     transparent: false,
   });
-  const [note, setNote] = useState("");
+  const [note, setNote] = useState<{ text: string; ok: boolean } | null>(null);
   const origin = useSyncExternalStore(
     noop,
     () => window.location.origin,
@@ -33,29 +35,26 @@ export function EmbedPanel({ room }: { room: string }) {
   const code = `<iframe src="${url}" title="Chatterjar" width="960" height="540" style="border:0"></iframe>`;
   const set = (patch: Partial<EmbedOptions>) => {
     setOpts((o) => ({ ...o, ...patch }));
-    setNote("");
+    setNote(null);
   };
 
   async function copy(text: string, done: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setNote(done);
+      setNote({ text: done, ok: true });
     } catch {
-      setNote("Could not copy. Select the text and copy it.");
+      setNote({ text: t("admin.embed.copyFailed"), ok: false });
     }
   }
 
   return (
-    <Section id="embed-heading" title="Embed in slides">
+    <Section id="embed-heading" title={t("admin.embed.title")}>
       <div className="grid gap-4 rounded-xl border border-line bg-white p-4">
-        <p className="text-sm text-muted">
-          Show live room content inside a slide. Use the link in the PowerPoint
-          Web Viewer add-in, or paste the code into reveal.js or a web page.
-        </p>
+        <p className="text-sm text-muted">{t("admin.embed.intro")}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <label htmlFor="embed-show" className="font-semibold">
-              What to show
+              {t("admin.embed.show")}
             </label>
             <select
               id="embed-show"
@@ -63,16 +62,16 @@ export function EmbedPanel({ room }: { room: string }) {
               onChange={(e) => set({ show: e.target.value as EmbedShow })}
               className={FIELD}
             >
-              {Object.entries(SHOW_LABEL).map(([value, label]) => (
+              {Object.entries(SHOW_KEY).map(([value, key]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {t(key)}
                 </option>
               ))}
             </select>
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="embed-theme" className="font-semibold">
-              Theme
+              {t("admin.embed.theme")}
             </label>
             <select
               id="embed-theme"
@@ -82,8 +81,8 @@ export function EmbedPanel({ room }: { room: string }) {
               }
               className={FIELD}
             >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
+              <option value="light">{t("admin.embed.themeLight")}</option>
+              <option value="dark">{t("admin.embed.themeDark")}</option>
             </select>
           </div>
         </div>
@@ -94,12 +93,12 @@ export function EmbedPanel({ room }: { room: string }) {
             checked={opts.transparent}
             onChange={(e) => set({ transparent: e.target.checked })}
           />
-          Transparent background
+          {t("admin.embed.transparent")}
         </label>
 
         <div className="grid gap-1.5">
           <label htmlFor="embed-url" className="font-semibold">
-            Embed link
+            {t("admin.embed.link")}
           </label>
           <input
             id="embed-url"
@@ -108,14 +107,14 @@ export function EmbedPanel({ room }: { room: string }) {
             onFocus={(e) => e.target.select()}
             className={`${FIELD} font-mono text-sm`}
           />
-          <Button onClick={() => copy(url, "Link copied.")}>
+          <Button onClick={() => copy(url, t("admin.embed.linkCopied"))}>
             <Link2 aria-hidden />
-            Copy link
+            {t("admin.embed.copyLink")}
           </Button>
         </div>
         <div className="grid gap-1.5">
           <label htmlFor="embed-code" className="font-semibold">
-            Iframe code
+            {t("admin.embed.code")}
           </label>
           <textarea
             id="embed-code"
@@ -125,16 +124,16 @@ export function EmbedPanel({ room }: { room: string }) {
             onFocus={(e) => e.target.select()}
             className={`${FIELD} resize-none py-2 font-mono text-sm`}
           />
-          <Button onClick={() => copy(code, "Code copied.")}>
+          <Button onClick={() => copy(code, t("admin.embed.codeCopied"))}>
             <Code aria-hidden />
-            Copy code
+            {t("admin.embed.copyCode")}
           </Button>
         </div>
         <p
           role="status"
-          className={`min-h-5 text-sm font-medium ${note.startsWith("Could") ? "text-rose" : "text-green"}`}
+          className={`min-h-5 text-sm font-medium ${note?.ok === false ? "text-rose" : "text-green"}`}
         >
-          {note}
+          {note?.text}
         </p>
       </div>
     </Section>

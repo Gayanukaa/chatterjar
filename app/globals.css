@@ -92,3 +92,8 @@ html:has([data-embed-bg="transparent"]),
 html:has([data-embed-bg="transparent"]) body {
   background: transparent;
 }
+
+/* A transparent frame must match the host page scheme, or browsers paint it. */
+html:has([data-embed-bg="transparent"][data-theme="dark"]) {
+  color-scheme: dark;
+}
