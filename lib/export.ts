@@ -15,6 +15,7 @@ export interface SessionExport {
   polls: {
     id: string;
     question: string;
+    kind: "choice" | "words" | "rating";
     status: PollStatus;
     options: { key: string; label: string; votes: number }[];
     correct: string | null;
@@ -52,14 +53,22 @@ export function buildExport(input: {
   tally: Record<string, unknown> | null;
 }): SessionExport {
   const polls = input.polls.map(({ poll, votes }) => {
-    const options = poll.options.map((o) => ({
-      key: o.key,
-      label: o.label,
-      votes: Number(votes?.[o.key] ?? 0),
-    }));
+    const kind = poll.kind ?? "choice";
+    // Word clouds have no fixed options: every distinct answer is a row.
+    const options =
+      kind === "words"
+        ? Object.entries(votes ?? {})
+            .map(([word, n]) => ({ key: word, label: word, votes: Number(n) }))
+            .sort((a, b) => b.votes - a.votes)
+        : poll.options.map((o) => ({
+            key: o.key,
+            label: o.label,
+            votes: Number(votes?.[o.key] ?? 0),
+          }));
     return {
       id: poll.id,
       question: poll.question,
+      kind,
       status: poll.status,
       options,
       correct: poll.correct ?? null,
