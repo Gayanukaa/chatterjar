@@ -41,6 +41,18 @@ export interface Question {
   createdAt: number;
 }
 
+export interface PendingQuestion {
+  id: string;
+  text: string;
+  createdAt: number;
+  // Filter reason ("language" or "link"), or null when only review is on.
+  flagged: string | null;
+}
+
+export interface RoomSettings {
+  moderate: boolean;
+}
+
 export interface DeviceState {
   vote: string | null;
   upvoted: string[];

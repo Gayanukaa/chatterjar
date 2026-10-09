@@ -40,6 +40,7 @@ export const POST = adminRoute(async () => {
   const doomed = [
     k("poll:active"),
     k("q:rank"),
+    k("q:pending"),
     k("q:text"),
     k("quiz:tally"),
     k("quiz:done"),
