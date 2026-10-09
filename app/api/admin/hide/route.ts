@@ -7,9 +7,14 @@ export const POST = adminRoute(async (req) => {
   const { id } = await body(req);
   if (typeof id !== "string" || !/^q[a-z0-9]+$/.test(id))
     return fail("Question not found.", 404);
-  await db()
+  const r = db();
+  const score = await r.zscore(k("q:rank"), id);
+  // The saved score keeps votes and time for the session export.
+  const fields: Record<string, number> = { hidden: 1 };
+  if (score != null) fields.score = Number(score);
+  await r
     .pipeline()
-    .hset(k(`q:${id}`), { hidden: 1 })
+    .hset(k(`q:${id}`), fields)
     .zrem(k("q:rank"), id)
     .exec();
   invalidate();

@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { withRoom } from "./api";
 import type { DeviceState, RoomState } from "./domain";
-
-export const POLL_MS = 3000;
+import { POLL_MS } from "./poll-interval";
 
 type Shared = Omit<RoomState, "me">;
 const NO_DEVICE: DeviceState = { vote: null, upvoted: [], persona: null };
@@ -21,7 +20,7 @@ async function getJson<T>(url: string): Promise<T> {
   return res.json();
 }
 
-/** Room state: shared part polled every 3 s, device part only when it can change. */
+/** Room state: shared part polled every POLL_MS, device part only when it changes. */
 export function useRoomState({
   room = "main",
   device = true,

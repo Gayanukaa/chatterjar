@@ -1,19 +1,21 @@
 "use client";
 
-import { EyeOff, Trash2 } from "lucide-react";
+import { Download, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import { Button, ErrorText, Section } from "./ui";
 
 type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
 
-/** Withdraw the active poll, or reset all votes, questions and quiz answers. */
+/** Withdraw the poll, download results, or reset the room. */
 export function RoomPanel({
   act,
+  download,
   hasActive,
   onDone,
 }: {
   act: Act;
+  download: (path: string) => Promise<string | null>;
   hasActive: boolean;
   onDone: () => void;
 }) {
@@ -30,6 +32,16 @@ export function RoomPanel({
     else setError(res.data.error ?? "Could not do that. Try again.");
     setBusy(false);
     onDone();
+  }
+
+  async function save(format: "csv" | "json") {
+    setBusy(true);
+    setError(null);
+    setNote("");
+    const failed = await download(`/api/admin/export?format=${format}`);
+    if (failed) setError(failed);
+    else setNote("Results downloaded.");
+    setBusy(false);
   }
 
   function reset() {
@@ -63,6 +75,19 @@ export function RoomPanel({
           <p className="text-sm text-muted">
             Hides the current poll from phones and the screen. Open it again
             from the poll list.
+          </p>
+        </div>
+        <div className="grid gap-2">
+          <Button onClick={() => save("csv")} disabled={busy}>
+            <Download aria-hidden />
+            Download results (CSV)
+          </Button>
+          <Button onClick={() => save("json")} disabled={busy}>
+            <Download aria-hidden />
+            Download results (JSON)
+          </Button>
+          <p className="text-sm text-muted">
+            Saves every poll, question (hidden ones too) and the quiz tally.
           </p>
         </div>
         <div className="grid gap-2">
