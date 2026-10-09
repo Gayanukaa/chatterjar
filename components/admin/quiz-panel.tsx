@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Bars } from "@/components/bars";
 import type { ApiResult } from "@/lib/api";
 import { PERSONAS, type Persona } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, Section } from "./ui";
 
 /** Persona quiz tally with a confirmed reset. */
@@ -15,6 +16,7 @@ export function QuizPanel({
   tally: Record<Persona, number> | null;
   onReset: () => Promise<ApiResult>;
 }) {
+  const t = useT();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const items = PERSONAS.map((p) => ({
@@ -25,36 +27,36 @@ export function QuizPanel({
   const total = items.reduce((sum, i) => sum + i.value, 0);
 
   async function reset() {
-    if (!window.confirm("Reset the quiz tally? All quiz answers go to 0.")) {
+    if (!window.confirm(t("admin.quiz.confirm"))) {
       return;
     }
     setBusy(true);
     setError(null);
     const res = await onReset();
-    if (!res.ok) setError(res.data.error ?? "Could not reset. Try again.");
+    if (!res.ok) setError(res.data.error ?? t("admin.quiz.failed"));
     setBusy(false);
   }
 
   return (
     <Section
       id="quiz-heading"
-      title="Quiz"
+      title={t("admin.quiz.heading")}
       action={
         <span className="text-sm tabular-nums text-muted">
-          {total} {total === 1 ? "answer" : "answers"}
+          {total} {t("common.units.answer", { count: total })}
         </span>
       }
     >
       <div className="grid gap-4 rounded-xl border border-line bg-white p-4">
         {tally === null ? (
-          <p className="text-muted">Loading quiz tally...</p>
+          <p className="text-muted">{t("admin.quiz.loading")}</p>
         ) : (
           <Bars items={items} />
         )}
         {error && <ErrorText>{error}</ErrorText>}
         <Button variant="danger" onClick={reset} disabled={busy}>
           <RotateCcw aria-hidden />
-          Reset quiz tally
+          {t("admin.quiz.reset")}
         </Button>
       </div>
     </Section>

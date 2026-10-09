@@ -7,6 +7,7 @@ import {
   pickTheme,
   type ScreenTheme,
 } from "@/lib/screen-theme";
+import { useT } from "@/lib/i18n/react";
 
 function readStored(): string | null {
   try {
@@ -49,6 +50,7 @@ export function ThemeToggle({
   theme: ScreenTheme;
   onToggle: () => void;
 }) {
+  const t = useT();
   const dark = theme === "dark";
   const Icon = dark ? Sun : Moon;
   return (
@@ -58,7 +60,7 @@ export function ThemeToggle({
       className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-lg border border-line px-4 text-lg font-semibold text-muted transition-colors hover:border-muted hover:text-ink"
     >
       <Icon aria-hidden className="size-5 shrink-0" />
-      {dark ? "Light theme" : "Dark theme"}
+      {dark ? t("screen.lightTheme") : t("screen.darkTheme")}
     </button>
   );
 }

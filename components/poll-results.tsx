@@ -1,6 +1,7 @@
 import { Star } from "lucide-react";
 import { Bars } from "@/components/bars";
 import { RATING_OPTIONS, topWords } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 
 const TONES = [
   "text-blue",
@@ -19,11 +20,12 @@ export function WordCloud({
   results: Record<string, number>;
   large?: boolean;
 }) {
+  const t = useT();
   const ranked = topWords(results);
   if (!ranked.length) {
     return (
       <p className={large ? "text-3xl text-muted" : "text-muted"}>
-        No answers yet.
+        {t("common.noAnswers")}
       </p>
     );
   }
@@ -41,7 +43,7 @@ export function WordCloud({
   return (
     <ul
       data-testid="word-cloud"
-      aria-label="Word cloud"
+      aria-label={t("common.wordCloud")}
       className={`flex flex-wrap items-center justify-center ${large ? `h-full content-center-safe overflow-hidden ${many ? "gap-x-6 gap-y-2" : "gap-x-8 gap-y-3"}` : "gap-x-4 gap-y-1"}`}
     >
       {words.map(([w, n, i]) => (
@@ -68,9 +70,10 @@ export function RatingResults({
   average?: number;
   large?: boolean;
 }) {
+  const t = useT();
   const items = [...RATING_OPTIONS].reverse().map((o) => ({
     key: o.key,
-    label: `${o.key} ${o.key === "1" ? "star" : "stars"}`,
+    label: t("common.stars", { count: Number(o.key) }),
     value: results[o.key] ?? 0,
   }));
   return (
@@ -89,7 +92,9 @@ export function RatingResults({
           {average === undefined ? "-" : average.toFixed(1)}
         </span>
         <span className={large ? "text-3xl text-muted" : "text-muted"}>
-          {average === undefined ? "No ratings yet" : "average rating"}
+          {average === undefined
+            ? t("common.noRatings")
+            : t("common.averageRating")}
         </span>
       </p>
       <Bars items={items} large={large} />

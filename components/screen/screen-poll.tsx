@@ -3,10 +3,10 @@ import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";
 import { RatingResults, WordCloud } from "@/components/poll-results";
 import type { PollKind, PublicPoll } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import styles from "./screen.module.css";
 
-const plural = (n: number, word: string) => `${word}${n === 1 ? "" : "s"}`;
-const UNIT: Record<PollKind, string> = {
+const UNIT: Record<PollKind, "vote" | "answer" | "rating"> = {
   choice: "vote",
   words: "answer",
   rating: "rating",
@@ -14,6 +14,7 @@ const UNIT: Record<PollKind, string> = {
 
 /** Active poll for the projector; results appear only after the reveal. */
 export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
+  const t = useT();
   if (!poll) {
     return (
       <section
@@ -21,11 +22,9 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
         className="flex min-h-0 flex-col justify-center"
       >
         <h1 className="font-heading text-6xl font-semibold tracking-tight">
-          No poll yet
+          {t("screen.noPoll")}
         </h1>
-        <p className="mt-4 text-2xl text-muted">
-          The next poll shows here when it opens.
-        </p>
+        <p className="mt-4 text-2xl text-muted">{t("screen.noPollHint")}</p>
       </section>
     );
   }
@@ -53,7 +52,7 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
           revealed ? (
             <WordCloud results={poll.results ?? {}} large />
           ) : (
-            <Prompt text="Send your answer from your phone." />
+            <Prompt text={t("screen.wordsPrompt")} />
           )
         ) : poll.kind === "rating" ? (
           revealed ? (
@@ -118,9 +117,10 @@ function Prompt({ text }: { text: string }) {
 }
 
 function Stars() {
+  const t = useT();
   return (
     <div className="space-y-8">
-      <ul aria-label="Rating from 1 to 5" className="flex gap-6">
+      <ul aria-label={t("screen.ratingScale")} className="flex gap-6">
         {[1, 2, 3, 4, 5].map((n) => (
           <li key={n} className="flex flex-col items-center gap-2">
             <Star aria-hidden className="size-20 text-amber" />
@@ -128,12 +128,13 @@ function Stars() {
           </li>
         ))}
       </ul>
-      <Prompt text="Rate from 1 (low) to 5 (high) on your phone." />
+      <Prompt text={t("screen.ratingPrompt")} />
     </div>
   );
 }
 
 function Results({ poll }: { poll: PublicPoll }) {
+  const t = useT();
   const items = poll.options.map((o) => ({
     key: o.key,
     label: o.label === o.key ? o.key : `${o.key}. ${o.label}`,
@@ -146,20 +147,22 @@ function Results({ poll }: { poll: PublicPoll }) {
       {poll.correct && (
         <p className="mt-8 flex items-center gap-3 font-heading text-4xl font-semibold text-green">
           <CircleCheck aria-hidden className="size-10 shrink-0" />
-          Correct answer: {poll.correct}
+          {t("common.correctAnswer", { answer: poll.correct })}
         </p>
       )}
       {poll.source && (
-        <p className="mt-3 text-lg text-muted">Source: {poll.source}</p>
+        <p className="mt-3 text-lg text-muted">
+          {t("common.source", { source: poll.source })}
+        </p>
       )}
     </div>
   );
 }
 
 const STATUS = {
-  open: { text: "Voting is open", Icon: Radio, tone: "text-green" },
-  closed: { text: "Voting is closed", Icon: Lock, tone: "text-amber" },
-  revealed: { text: "Results are in", Icon: CircleCheck, tone: "text-green" },
+  open: { Icon: Radio, tone: "text-green" },
+  closed: { Icon: Lock, tone: "text-amber" },
+  revealed: { Icon: CircleCheck, tone: "text-green" },
 } as const;
 
 function VoteCount({
@@ -169,9 +172,10 @@ function VoteCount({
 }: {
   total: number;
   status: PublicPoll["status"];
-  unit: string;
+  unit: (typeof UNIT)[PollKind];
 }) {
-  const { text, Icon, tone } = STATUS[status];
+  const t = useT();
+  const { Icon, tone } = STATUS[status];
   return (
     <div className="mt-6 flex items-end justify-between gap-6 border-t border-line pt-5">
       <p aria-live="polite" className="flex items-baseline gap-3">
@@ -182,13 +186,15 @@ function VoteCount({
         >
           {total}
         </span>
-        <span className="text-3xl text-muted">{plural(total, unit)}</span>
+        <span className="text-3xl text-muted">
+          {t(`common.units.${unit}`, { count: total })}
+        </span>
       </p>
       <p
         className={`flex items-center gap-2.5 pb-1 text-2xl font-semibold ${tone}`}
       >
         <Icon aria-hidden className="size-7 shrink-0" />
-        {text}
+        {t(`screen.status.${status}`)}
       </p>
     </div>
   );

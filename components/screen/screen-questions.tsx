@@ -1,4 +1,5 @@
 import type { Question } from "@/lib/domain";
+import { useT } from "@/lib/i18n/react";
 import styles from "./screen.module.css";
 
 /** Smaller type for longer questions so the full text fits the column. */
@@ -10,6 +11,7 @@ function textSize(text: string) {
 
 /** Top five student questions; new ones fade in, vote counts pulse. */
 export function ScreenQuestions({ questions }: { questions: Question[] }) {
+  const t = useT();
   const top = questions.slice(0, 5);
   return (
     <section
@@ -21,12 +23,10 @@ export function ScreenQuestions({ questions }: { questions: Question[] }) {
         id="screen-questions-title"
         className="font-heading text-3xl font-semibold tracking-tight"
       >
-        Top questions
+        {t("screen.topQuestions")}
       </h2>
       {top.length === 0 ? (
-        <p className="mt-6 text-xl text-muted">
-          No questions yet. Send one from your phone.
-        </p>
+        <p className="mt-6 text-xl text-muted">{t("screen.noQuestions")}</p>
       ) : (
         <ol className="mt-5 -mx-3 min-h-0 flex-1 space-y-2 overflow-y-auto">
           {top.map((q, i) => (
@@ -44,7 +44,7 @@ export function ScreenQuestions({ questions }: { questions: Question[] }) {
                   {q.votes}
                 </span>
                 <span className="mt-1 block text-sm text-muted">
-                  {q.votes === 1 ? "vote" : "votes"}
+                  {t("common.units.vote", { count: q.votes })}
                 </span>
               </span>
               <p

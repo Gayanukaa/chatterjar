@@ -4,15 +4,16 @@ import { KeyRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button, ErrorText, FIELD } from "./ui";
 import { Logo } from "@/components/logo";
+import { useT } from "@/lib/i18n/react";
 
 /** Asks for the admin key when none is stored or the stored one was rejected. */
 export function KeyForm({
   error,
   onSubmit,
-  title = "Chatterjar admin",
-  description = "Enter the admin key to run polls, questions and the quiz.",
-  label = "Admin key",
-  button = "Open admin",
+  title,
+  description,
+  label,
+  button,
 }: {
   error: string | null;
   onSubmit: (key: string) => void;
@@ -21,6 +22,7 @@ export function KeyForm({
   label?: string;
   button?: string;
 }) {
+  const t = useT();
   const [value, setValue] = useState("");
 
   function submit(e: FormEvent) {
@@ -33,12 +35,14 @@ export function KeyForm({
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-4 py-10">
       <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-tight">
         <Logo className="size-10" />
-        {title}
+        {title ?? t("admin.title")}
       </h1>
-      <p className="mt-2 text-muted">{description}</p>
+      <p className="mt-2 text-muted">
+        {description ?? t("admin.key.description")}
+      </p>
       <form onSubmit={submit} className="mt-6 grid gap-3">
         <label htmlFor="admin-key" className="font-semibold">
-          {label}
+          {label ?? t("admin.key.label")}
         </label>
         <input
           id="admin-key"
@@ -54,7 +58,7 @@ export function KeyForm({
         {error && <ErrorText>{error}</ErrorText>}
         <Button type="submit" variant="primary">
           <KeyRound aria-hidden />
-          {button}
+          {button ?? t("admin.key.button")}
         </Button>
       </form>
     </main>

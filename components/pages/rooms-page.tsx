@@ -6,6 +6,7 @@ import { KeyForm } from "@/components/admin/key-form";
 import { Button, ErrorText, FIELD, Section } from "@/components/admin/ui";
 import { Logo } from "@/components/logo";
 import { roomPath } from "@/lib/api";
+import { useT } from "@/lib/i18n/react";
 
 interface Room {
   code: string;
@@ -34,6 +35,7 @@ function saveKey(key: string | null) {
 
 /** Owner console: create invite-only rooms and hand out their admin links. */
 export function RoomsPage() {
+  const t = useT();
   const [key, setKey] = useState<string | null | undefined>(undefined);
   const [rooms, setRooms] = useState<Room[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,17 +62,17 @@ export function RoomsPage() {
           body: payload ? JSON.stringify(payload) : undefined,
         });
       } catch {
-        return { ok: false, data: { error: "No connection. Try again." } };
+        return { ok: false, data: { error: t("common.noConnection") } };
       }
       const data = await res.json().catch(() => ({}));
       if (res.status === 401 || res.status === 403) {
         saveKey(null);
         setKey(null);
-        setKeyError(data.error ?? "This owner key is wrong.");
+        setKeyError(data.error ?? t("rooms.wrongKey"));
       }
       return { ok: res.ok, data };
     },
-    [key],
+    [key, t],
   );
 
   const load = useCallback(async () => {
@@ -95,8 +97,7 @@ export function RoomsPage() {
     setError(null);
     const res = await call("POST", "/api/super/rooms", { title });
     setBusy(false);
-    if (!res.ok)
-      return setError(res.data.error ?? "Could not create the room.");
+    if (!res.ok) return setError(res.data.error ?? t("rooms.createFailed"));
     const { code, token } = res.data.room;
     const adminUrl = `${window.location.origin}${roomPath(code, "admin")}#key=${token}`;
     setCreated({ title: res.data.room.title, adminUrl });
@@ -112,12 +113,11 @@ export function RoomsPage() {
   }
 
   async function remove(room: Room) {
-    const sure = window.confirm(
-      `Delete "${room.title}"? All of its polls, votes, questions and quiz answers are deleted.`,
-    );
-    if (!sure) return;
+    if (!window.confirm(t("rooms.deleteConfirm", { title: room.title }))) {
+      return;
+    }
     const res = await call("DELETE", `/api/super/rooms?code=${room.code}`);
-    if (!res.ok) setError(res.data.error ?? "Could not delete the room.");
+    if (!res.ok) setError(res.data.error ?? t("rooms.deleteFailed"));
     void load();
   }
 
@@ -127,10 +127,10 @@ export function RoomsPage() {
   if (key === null) {
     return (
       <KeyForm
-        title="Chatterjar rooms"
-        description="Enter the owner key to create and delete rooms."
-        label="Owner key"
-        button="Open rooms"
+        title={t("rooms.title")}
+        description={t("rooms.keyDescription")}
+        label={t("rooms.keyLabel")}
+        button={t("rooms.keyButton")}
         error={keyError}
         onSubmit={(next) => {
           saveKey(next);
@@ -146,29 +146,26 @@ export function RoomsPage() {
       <header className="border-b border-line pb-5">
         <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-tight sm:text-4xl">
           <Logo className="size-10" />
-          Chatterjar rooms
+          {t("rooms.title")}
         </h1>
-        <p className="mt-1 text-muted">
-          Create a room for each talk or speaker. Each room has its own polls,
-          questions and admin link.
-        </p>
+        <p className="mt-1 text-muted">{t("rooms.intro")}</p>
       </header>
 
       <div className="mt-6 grid gap-10">
-        <Section id="create-heading" title="Create a room">
+        <Section id="create-heading" title={t("rooms.createHeading")}>
           <form
             onSubmit={create}
             className="grid gap-3 rounded-xl border border-line bg-white p-4"
           >
             <label htmlFor="room-title" className="font-semibold">
-              Room name
+              {t("rooms.nameLabel")}
             </label>
             <input
               id="room-title"
               className={FIELD}
               value={title}
               maxLength={80}
-              placeholder="For example: Design systems talk, Friday"
+              placeholder={t("rooms.namePlaceholder")}
               onChange={(e) => setTitle(e.target.value)}
             />
             <Button
@@ -177,7 +174,7 @@ export function RoomsPage() {
               disabled={busy || !title.trim()}
             >
               <Plus aria-hidden />
-              Create room
+              {t("rooms.create")}
             </Button>
             {error && <ErrorText>{error}</ErrorText>}
             {created && (
@@ -186,8 +183,7 @@ export function RoomsPage() {
                 className="grid gap-2 rounded-lg bg-green/[0.07] p-3"
               >
                 <p className="font-semibold text-green">
-                  &quot;{created.title}&quot; is ready. Copy the admin link now:
-                  it is shown only once.
+                  {t("rooms.ready", { title: created.title })}
                 </p>
                 <code className="block rounded bg-white p-2 text-sm break-all">
                   {created.adminUrl}
@@ -198,27 +194,23 @@ export function RoomsPage() {
                       await navigator.clipboard.writeText(created.adminUrl);
                       setCopied(true);
                     } catch {
-                      setError(
-                        "Copy failed. Select the link above and copy it.",
-                      );
+                      setError(t("rooms.copyFailed"));
                     }
                   }}
                 >
                   {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-                  {copied ? "Copied" : "Copy admin link"}
+                  {copied ? t("rooms.copied") : t("rooms.copy")}
                 </Button>
               </div>
             )}
           </form>
         </Section>
 
-        <Section id="rooms-heading" title="Rooms">
+        <Section id="rooms-heading" title={t("rooms.listHeading")}>
           {rooms === null ? (
-            <p className="text-muted">Loading rooms...</p>
+            <p className="text-muted">{t("rooms.loading")}</p>
           ) : rooms.length === 0 ? (
-            <p className="text-muted">
-              No rooms yet. The main room is always at /.
-            </p>
+            <p className="text-muted">{t("rooms.empty")}</p>
           ) : (
             <ul className="grid gap-3">
               {rooms.map((room) => (
@@ -230,25 +222,26 @@ export function RoomsPage() {
                   <div className="min-w-0">
                     <p className="font-semibold">{room.title}</p>
                     <p className="text-sm text-muted">
-                      Code <span className="font-mono">{room.code}</span> ·{" "}
+                      {t("rooms.code")}{" "}
+                      <span className="font-mono">{room.code}</span> ·{" "}
                       <a
                         className="inline-flex min-h-12 items-center text-blue underline-offset-4 hover:underline"
                         href={roomPath(room.code)}
                       >
-                        Phone page
+                        {t("common.phonePage")}
                       </a>{" "}
                       ·{" "}
                       <a
                         className="inline-flex min-h-12 items-center text-blue underline-offset-4 hover:underline"
                         href={roomPath(room.code, "screen")}
                       >
-                        Projector view
+                        {t("common.projectorView")}
                       </a>
                     </p>
                   </div>
                   <Button variant="danger" onClick={() => remove(room)}>
                     <Trash2 aria-hidden />
-                    Delete room
+                    {t("rooms.delete")}
                   </Button>
                 </li>
               ))}

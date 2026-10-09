@@ -8,6 +8,7 @@ import {
 import { adminRoute, fail } from "@/lib/http";
 import { db, k } from "@/lib/redis";
 import { currentRoom } from "@/lib/room";
+import { t } from "@/lib/i18n";
 
 type Hash = Record<string, unknown> | null;
 
@@ -15,7 +16,7 @@ type Hash = Record<string, unknown> | null;
 export const GET = adminRoute(async (req) => {
   const format = req.nextUrl.searchParams.get("format") ?? "json";
   if (format !== "json" && format !== "csv")
-    return fail("Use format=json or format=csv.", 400);
+    return fail(t("api.exportFormat"), 400);
   const r = db();
   const [ids, texts, ranked, tally] = await r
     .pipeline()

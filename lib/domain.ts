@@ -77,14 +77,9 @@ export interface RoomState {
   me: DeviceState;
 }
 
-export const REACTIONS = [
-  { type: "applause", label: "Applause" },
-  { type: "love", label: "Love it" },
-  { type: "idea", label: "Great point" },
-  { type: "confused", label: "I'm lost" },
-] as const;
-export type Reaction = (typeof REACTIONS)[number]["type"];
-export const REACTION_TYPES: readonly Reaction[] = REACTIONS.map((r) => r.type);
+// Labels live in the i18n catalog under common.reactions.
+export const REACTION_TYPES = ["applause", "love", "idea", "confused"] as const;
+export type Reaction = (typeof REACTION_TYPES)[number];
 export const REACTIONS_PER_WINDOW = 10;
 export const REACTION_WINDOW_S = 10;
 
@@ -95,11 +90,6 @@ export const OPTION_KEYS = ["A", "B", "C", "D"];
 export const VOTE_WEIGHT = 1e13;
 export const RID_PATTERN = /^[0-9a-f-]{36}$/i;
 export const POLL_KINDS: PollKind[] = ["choice", "words", "rating"];
-export const KIND_LABEL: Record<PollKind, string> = {
-  choice: "Multiple choice",
-  words: "Word cloud",
-  rating: "Rating 1 to 5",
-};
 export const MAX_WORD = 24;
 export const TOP_WORDS = 40;
 export const RATING_OPTIONS: Option[] = ["1", "2", "3", "4", "5"].map(
@@ -259,7 +249,7 @@ export function parseOptions(raw: unknown): Option[] | null {
 }
 
 export const isReaction = (v: unknown): v is Reaction =>
-  typeof v === "string" && (REACTION_TYPES as string[]).includes(v);
+  typeof v === "string" && (REACTION_TYPES as readonly string[]).includes(v);
 
 /** Every reaction type with its count; missing or bad values become 0. */
 export function reactionTotals(
