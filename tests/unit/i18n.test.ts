@@ -1,3 +1,4 @@
+import type { Messages } from "@/lib/i18n";
 import { describe, expect, it } from "vitest";
 import {
   CATALOGS,
@@ -93,3 +94,8 @@ describe("catalogs", () => {
     }
   });
 });
+
+// Type-level guard: tsc --noEmit fails if a catalog with missing keys type-checks.
+// @ts-expect-error a catalog must have every key of en
+const incomplete: Messages = { common: { appName: "x" } };
+void incomplete;

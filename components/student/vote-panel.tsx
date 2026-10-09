@@ -12,6 +12,7 @@ import {
   RATING_OPTIONS,
   type PollKind,
   type PublicPoll,
+  isPollKind,
 } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 import { ErrorNote, errorText } from "./error-note";
@@ -50,7 +51,7 @@ export function VotePanel({
   const canVote = poll.status === "open" && !vote && !sending;
   const revealed = poll.status === "revealed";
   // A cached state from before poll types has no kind.
-  const kind: PollKind = poll.kind ?? "choice";
+  const kind: PollKind = isPollKind(poll.kind) ? poll.kind : "choice";
 
   /** Sends an option key or a word; true when the server took it. */
   async function send(payload: { option: string } | { text: string }) {

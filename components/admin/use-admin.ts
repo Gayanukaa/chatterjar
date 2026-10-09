@@ -59,7 +59,7 @@ export function useAdmin(room = "main") {
   }, [room, t]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       const url = new URL(window.location.href);
       // #key= is preferred: fragments never reach the server or its logs.
       const fromHash = new URLSearchParams(url.hash.slice(1)).get("key");
@@ -77,7 +77,7 @@ export function useAdmin(room = "main") {
       }
       setKey(fromUrl || readKey(room));
     }, 0);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [room]);
 
   const refresh = useCallback(async () => {

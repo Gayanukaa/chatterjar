@@ -45,9 +45,11 @@ function makeT(locale: Locale): Translate {
     const entry = key
       .split(".")
       .reduce<unknown>(
-        (node, part) => (node as Record<string, unknown>)[part],
+        (node, part) => (node as Record<string, unknown> | undefined)?.[part],
         CATALOGS[locale],
-      ) as string | Plural;
+      ) as string | Plural | undefined;
+    // A bad key shows itself instead of crashing the page.
+    if (entry === undefined) return key;
     const text =
       typeof entry === "string"
         ? entry

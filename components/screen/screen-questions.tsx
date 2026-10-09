@@ -1,3 +1,5 @@
+"use client";
+
 import type { Question } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 import styles from "./screen.module.css";

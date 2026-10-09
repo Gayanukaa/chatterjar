@@ -1,3 +1,5 @@
+"use client";
+
 import { Bars } from "@/components/bars";
 import { PERSONAS, type Persona } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";

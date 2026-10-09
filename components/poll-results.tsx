@@ -1,3 +1,5 @@
+"use client";
+
 import { Star } from "lucide-react";
 import { Bars } from "@/components/bars";
 import { RATING_OPTIONS, topWords } from "@/lib/domain";
