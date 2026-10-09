@@ -80,11 +80,26 @@ async function reactionTotal(request: APIRequestContext) {
   return Object.values(reactions).reduce((sum, n) => sum + Number(n), 0);
 }
 
+/** Admin state of the main room: settings and questions that wait for review. */
+async function adminState(request: APIRequestContext): Promise<{
+  settings: { moderate: boolean };
+  pending: { id: string; text: string; flagged: string | null }[];
+}> {
+  const res = await request.get("/api/admin/state", {
+    headers: { "x-admin-key": ADMIN_KEY },
+  });
+  expect(res.ok(), `/api/admin/state: ${res.status()}`).toBe(true);
+  return res.json();
+}
+
 /** Hides questions from earlier runs, so new ones still make the top 30. */
 async function hideTestQuestions(request: APIRequestContext) {
   for (let round = 0; round < 5; round++) {
     const { questions } = await getState(request);
-    const ours = questions.filter((q) => q.text.startsWith(`${TAG} `));
+    const { pending } = await adminState(request);
+    const ours = [...questions, ...(pending ?? [])].filter((q) =>
+      q.text.startsWith(`${TAG} `),
+    );
     if (!ours.length) return;
     for (const q of ours) await admin(request, "/api/admin/hide", { id: q.id });
   }
@@ -318,10 +333,10 @@ test("6. at 360 px nothing overflows and buttons are 48 px or taller", async ({
   const { page } = await device(browser, "/", {
     viewport: { width: 360, height: 800 },
   });
-  // A long question with a link checks wrapping and shows upvote buttons.
+  // A long unbroken word checks wrapping; a link would wait for review.
   const posted = await page.request.post("/api/question", {
     data: {
-      text: `${TAG} layout ${Date.now()} see https://example.com/${"a".repeat(60)}`,
+      text: `${TAG} layout ${Date.now()} see example.com/${"a".repeat(60)}`,
     },
   });
   expect(posted.status(), "layout question").toBe(201);
@@ -566,4 +581,42 @@ test("10. reactions add to the totals and the 11th in 10 s is rejected", async (
   await expect(screen.getByTestId("screen-reactions")).toBeVisible({
     timeout: SYNC,
   });
+});
+
+test("11. with review on, a question shows only after the admin approves it", async ({
+  browser,
+  request,
+}) => {
+  // The setting is room-wide: never flip it on live data.
+  test.skip(Boolean(process.env.BASE_URL), "changes the room review setting");
+  await admin(request, "/api/admin/settings", { moderate: true });
+  try {
+    expect((await adminState(request)).settings.moderate).toBe(true);
+    const text = `${TAG} review ${Date.now()}`;
+    const { page } = await device(browser);
+    await openTab(page, "Questions");
+    await page.getByLabel("Your question").fill(text);
+    await page.getByRole("button", { name: "Send question" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "The host will review" }),
+    ).toBeVisible();
+
+    const waiting = (await adminState(request)).pending.find(
+      (q) => q.text === text,
+    );
+    expect(waiting, "question in the review queue").toBeTruthy();
+    const shown = async () =>
+      (await getState(request)).questions.some((q) => q.text === text);
+    expect(await shown()).toBe(false);
+
+    await admin(request, "/api/admin/approve", { id: waiting!.id });
+    await expect.poll(shown, { timeout: SYNC }).toBe(true);
+    await expect(
+      page.getByTestId("question").filter({ hasText: text }),
+    ).toBeVisible({ timeout: SYNC });
+    const queue = (await adminState(request)).pending;
+    expect(queue.some((q) => q.text === text)).toBe(false);
+  } finally {
+    await admin(request, "/api/admin/settings", { moderate: false });
+  }
 });

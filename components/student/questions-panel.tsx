@@ -20,7 +20,7 @@ export function QuestionsPanel({
   const room = useRoom();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
-  const [sentNote, setSentNote] = useState(false);
+  const [sentNote, setSentNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [mine, setMine] = useState<string[]>([]);
 
@@ -28,12 +28,16 @@ export function QuestionsPanel({
     e.preventDefault();
     setSending(true);
     setError(null);
-    setSentNote(false);
+    setSentNote("");
     const res = await post(withRoom("/api/question", room), { text });
     setSending(false);
     if (res.ok) {
       setText("");
-      setSentNote(true);
+      setSentNote(
+        res.data.pending
+          ? "Sent. The host will review your question."
+          : "Question sent.",
+      );
       await refresh();
     } else {
       setError(errorText(res.data, "Your question did not go through."));
@@ -73,7 +77,7 @@ export function QuestionsPanel({
           rows={3}
           onChange={(e) => {
             setText(e.target.value);
-            setSentNote(false);
+            setSentNote("");
           }}
           placeholder="Ask the speaker anything"
           className="block w-full resize-none rounded-xl bg-white px-3 py-3 text-base text-ink ring-1 ring-line placeholder:text-muted focus:ring-2 focus:ring-blue focus:outline-none"
@@ -88,7 +92,7 @@ export function QuestionsPanel({
         </button>
         <ErrorNote message={error} />
         <p role="status" className="text-sm text-green empty:hidden">
-          {sentNote ? "Question sent." : ""}
+          {sentNote}
         </p>
       </form>
 

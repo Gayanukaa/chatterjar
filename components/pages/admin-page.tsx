@@ -7,6 +7,7 @@ import { KeyForm } from "@/components/admin/key-form";
 import { PollList } from "@/components/admin/poll-list";
 import { QuestionsPanel } from "@/components/admin/questions-panel";
 import { QuizPanel } from "@/components/admin/quiz-panel";
+import { ReviewPanel } from "@/components/admin/review-panel";
 import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
 import { roomPath } from "@/lib/api";
@@ -92,6 +93,13 @@ export function AdminPage({ room: code }: { room: string }) {
             onDone={() => void room.refresh()}
           />
           <CreatePollForm act={act} />
+          <ReviewPanel
+            moderate={data?.settings?.moderate ?? null}
+            pending={data?.pending ?? null}
+            total={data?.pendingTotal ?? 0}
+            act={act}
+            onDone={() => void room.refresh()}
+          />
           <QuestionsPanel
             questions={room.state?.questions ?? null}
             onHide={async (id) => {

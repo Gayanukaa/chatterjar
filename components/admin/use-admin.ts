@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { post, withRoom } from "@/lib/api";
-import type { Poll } from "@/lib/domain";
+import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
 import { POLL_MS } from "@/lib/poll-interval";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
@@ -16,6 +16,9 @@ export interface AdminState {
   activeId: string | null;
   polls: AdminPoll[];
   packs: PackSummary[];
+  settings: RoomSettings;
+  pending: PendingQuestion[];
+  pendingTotal: number;
 }
 
 const storeKey = (room: string) => `room-admin-key:${room}`;

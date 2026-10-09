@@ -13,8 +13,14 @@ export const POST = route(async (req) => {
     k(`q:${id}`),
     "hidden",
     "by",
+    "pending",
   );
-  if (!q || q.hidden == null || Number(q.hidden) === 1)
+  if (
+    !q ||
+    q.hidden == null ||
+    Number(q.hidden) === 1 ||
+    Number(q.pending) === 1
+  )
     return fail("Question not found.", 404);
   if (String(q.by) === rid)
     return fail("You cannot upvote your own question.", 409);
