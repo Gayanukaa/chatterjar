@@ -21,7 +21,11 @@ services:
     restart: unless-stopped
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        # Page refresh in ms (2000 to 15000); baked in at build time.
+        NEXT_PUBLIC_POLL_MS: ${NEXT_PUBLIC_POLL_MS:-3000}
     ports:
       - "3000:3000"
     environment:
@@ -30,6 +34,8 @@ services:
       ADMIN_KEY: ${ADMIN_KEY:?Set ADMIN_KEY, for example with openssl rand -hex 24}
       # Optional: owner key that unlocks /admin/rooms (invite-only rooms).
       SUPER_ADMIN_KEY: ${SUPER_ADMIN_KEY:-}
+      # Days to keep votes, questions and reactions after the last write.
+      DATA_TTL_DAYS: ${DATA_TTL_DAYS:-30}
     depends_on:
       - srh
     restart: unless-stopped

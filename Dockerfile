@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
+# NEXT_PUBLIC_* values are inlined at build time.
+ARG NEXT_PUBLIC_POLL_MS
+ENV NEXT_PUBLIC_POLL_MS=$NEXT_PUBLIC_POLL_MS
 RUN npm run build
 
 FROM node:24-alpine

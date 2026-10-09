@@ -4,24 +4,29 @@ Thanks for helping. This guide covers setup, house rules and how to open a pull 
 
 ## Setup
 
-1. Fork and clone the repo. You need Node.js 24 or newer.
+1. Fork and clone the repo. You need Node.js 24.
 2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and fill in a Redis REST URL and token. Options:
+3. Copy `.env.example` to `.env.local`. Fill in a Redis REST URL and token, and set
+   `ADMIN_KEY` to any string for local use (set `SUPER_ADMIN_KEY` too if you want to try
+   rooms). Redis options:
    - a free [Upstash](https://upstash.com) database, or
    - local Redis plus [serverless-redis-http](https://github.com/hiett/serverless-redis-http)
-     (see the CI workflow for a working setup).
-4. Run `npm run dev` and open http://localhost:3000.
+     (see the CI workflow or `docker-compose.yml` for a working setup).
+4. Run `npm run dev`, open http://localhost:3000 for the phone page and
+   `/admin#key=<ADMIN_KEY>` for the admin console.
 
 ## Checks
 
-Run these before you open a pull request. CI runs them too.
+Run these before you open a pull request. CI runs them too, plus a Docker self-host
+smoke test (`docker compose up`).
 
-| Command             | What it checks                                            |
-| ------------------- | --------------------------------------------------------- |
-| `npm run lint`      | ESLint                                                    |
-| `npm run build`     | Production build and types                                |
-| `npm run test:unit` | Unit tests and the house-style test                       |
-| `npm run test:e2e`  | Acceptance checks with two browser contexts (needs Redis) |
+| Command             | What it checks                                                                                     |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| `npm run lint`      | ESLint                                                                                             |
+| `npm run build`     | Production build and types                                                                         |
+| `npm run test:unit` | Unit tests and the house-style test                                                                |
+| `npm run test:e2e`  | 14 acceptance checks with two browser contexts (needs Redis and `npx playwright install chromium`) |
+| `npm run format`    | Prettier                                                                                           |
 
 ## House rules
 
@@ -36,10 +41,16 @@ The style test (`tests/unit/style.test.ts`) enforces the first three rules.
   sentence case.
 - Students stay anonymous. Never collect names, emails or phone numbers.
 - Answers stay on the server until a poll is revealed.
+- API routes send `Cache-Control: no-store`, except `GET /api/room`, which is cached on
+  the CDN for 1 s and must never set cookies.
+- Admin keys travel only in the `x-admin-key` header. Only `/embed` pages may be framed.
 
 ## Translations
 
-All user-facing text lives in `lib/i18n/messages/en.ts`, including API error messages.
+All interface text lives in `lib/i18n/messages/en.ts`. Quiz questions (`data/quiz.json`)
+and content packs (`data/packs/`) are content, not part of the catalog. API error
+messages are in the catalog, but the server always sends them in English.
+
 To add a language:
 
 1. Copy `lib/i18n/messages/en.ts` to `lib/i18n/messages/<code>.ts` (for example `si.ts`)
@@ -51,12 +62,13 @@ To add a language:
 4. Run `npm run test:unit`. The catalog test fails on a missing or extra key, and so
    does the type check in `npm run build`.
 
-Visitors get the first supported language from their browser, or `?lang=<code>`.
+A supported `?lang=<code>` wins. Otherwise the page uses the first supported browser
+language, then English. Pages render in English on the server and switch in the browser.
 
 ## Pull requests
 
-- Branch from `main` as `type/short-name` (for example `feat/word-cloud`).
-- Commit subjects follow Conventional Commits: `feat: add word cloud poll`.
+- Branch from `main` as `type/short-name` (for example `feat/poll-timer`).
+- Commit subjects follow Conventional Commits: `feat: add timer to polls`.
   Lowercase, imperative, 50 characters or less.
 - Keep the PR description to one or two sentences: what changed and why.
 - One logical change per PR. Add or update tests for behavior changes.
