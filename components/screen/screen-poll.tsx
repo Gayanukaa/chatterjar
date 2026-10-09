@@ -99,7 +99,7 @@ function Options({ poll }: { poll: PublicPoll }) {
           </div>
           {o.media && (
             // Projector type sizes for the shared text and code view.
-            <div className="mt-4 [&_pre]:max-h-[44vh] [&_pre]:p-5 [&_pre]:text-[15px] [&_pre]:leading-snug">
+            <div className="mt-4 [&_pre]:max-h-[44vh] [&_pre]:p-5 [&_pre]:text-[0.94rem] [&_pre]:leading-snug">
               <OptionMedia media={o.media} label={o.key} playAudio />
             </div>
           )}

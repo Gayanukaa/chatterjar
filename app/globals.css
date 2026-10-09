@@ -56,3 +56,44 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Embed view: rem follows the iframe size, so every rem-based size scales. */
+html:has([data-embed]) {
+  font-size: clamp(6px, min(1.3vw, 2.1vh), 40px);
+  overflow: hidden;
+}
+
+/* "all" packs three projector columns: the /screen 1600 x 900 scale. */
+html:has([data-embed="all"]) {
+  font-size: clamp(5px, min(1vw, 1.78vh), 32px);
+}
+
+/* Single narrow parts have room to grow. */
+html:has([data-embed="questions"]) {
+  font-size: clamp(6px, min(2vw, 3vh), 40px);
+}
+
+html:has([data-embed="tally"]) {
+  font-size: clamp(6px, min(2vw, 2.6vh), 40px);
+}
+
+html:has([data-embed="qr"]) {
+  font-size: clamp(6px, min(2.6vw, 4vh), 48px);
+}
+
+@media (orientation: portrait) {
+  html:has([data-embed="all"]) {
+    font-size: clamp(5px, min(1.8vw, 0.85vh), 32px);
+  }
+}
+
+/* Transparent page for overlays on a slide. */
+html:has([data-embed-bg="transparent"]),
+html:has([data-embed-bg="transparent"]) body {
+  background: transparent;
+}
+
+/* A transparent frame must match the host page scheme, or browsers paint it. */
+html:has([data-embed-bg="transparent"][data-theme="dark"]) {
+  color-scheme: dark;
+}
