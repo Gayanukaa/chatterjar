@@ -5,7 +5,6 @@ import { useState } from "react";
 import { post, withRoom } from "@/lib/api";
 import { useRoom } from "@/components/room";
 import { MAX_QUESTION, type Question } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { ErrorNote, errorText } from "./error-note";
 
 /** Ask form plus the question list in server order, with upvotes. */
@@ -19,7 +18,6 @@ export function QuestionsPanel({
   refresh: () => Promise<void>;
 }) {
   const room = useRoom();
-  const t = useT();
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [sentNote, setSentNote] = useState("");
@@ -37,12 +35,12 @@ export function QuestionsPanel({
       setText("");
       setSentNote(
         res.data.pending
-          ? t("student.questions.sentPending")
-          : t("student.questions.sent"),
+          ? "Sent. The host will review your question."
+          : "Question sent.",
       );
       await refresh();
     } else {
-      setError(errorText(res.data, t("student.questions.failed")));
+      setError(errorText(res.data, "Your question did not go through."));
     }
   }
 
@@ -53,7 +51,7 @@ export function QuestionsPanel({
     if (res.ok) await refresh();
     else {
       setMine((m) => m.filter((x) => x !== id));
-      setError(errorText(res.data, t("student.questions.upvoteFailed")));
+      setError(errorText(res.data, "Your upvote did not go through."));
     }
   }
 
@@ -62,7 +60,7 @@ export function QuestionsPanel({
       <form onSubmit={send} className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
           <label htmlFor="question-text" className="font-semibold">
-            {t("student.questions.label")}
+            Your question
           </label>
           <span
             id="question-count"
@@ -81,7 +79,7 @@ export function QuestionsPanel({
             setText(e.target.value);
             setSentNote("");
           }}
-          placeholder={t("student.questions.placeholder")}
+          placeholder="Ask the speaker anything"
           className="block w-full resize-none rounded-xl bg-white px-3 py-3 text-base text-ink ring-1 ring-line placeholder:text-muted focus:ring-2 focus:ring-blue focus:outline-none"
         />
         <button
@@ -90,9 +88,7 @@ export function QuestionsPanel({
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue px-4 font-semibold text-white transition-colors hover:bg-blue/90 active:bg-ink disabled:bg-line disabled:text-muted"
         >
           <Send aria-hidden className="size-5" />
-          {sending
-            ? t("student.questions.sending")
-            : t("student.questions.send")}
+          {sending ? "Sending..." : "Send question"}
         </button>
         <ErrorNote message={error} />
         <p role="status" className="text-sm text-green empty:hidden">
@@ -102,10 +98,10 @@ export function QuestionsPanel({
 
       <section aria-labelledby="questions-heading" className="space-y-3">
         <h2 id="questions-heading" className="text-xl font-semibold">
-          {t("student.questions.heading")}
+          Questions from the room
         </h2>
         {questions.length === 0 ? (
-          <p className="text-muted">{t("student.questions.empty")}</p>
+          <p className="text-muted">No questions yet. Ask the first one.</p>
         ) : (
           <ul className="space-y-2">
             {questions.map((q) => {
@@ -121,9 +117,7 @@ export function QuestionsPanel({
                   </p>
                   <button
                     type="button"
-                    aria-label={t("student.questions.upvote", {
-                      votes: q.votes,
-                    })}
+                    aria-label={`Upvote question (${q.votes} votes)`}
                     aria-pressed={done}
                     disabled={done}
                     onClick={() => upvote(q.id)}

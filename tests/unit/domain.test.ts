@@ -5,7 +5,6 @@ import {
   normalizeWord,
   optionsFor,
   publicPoll,
-  ratingAverage,
   topWords,
   questionScore,
   scorePersona,
@@ -80,22 +79,11 @@ describe("publicPoll", () => {
     expect(Object.keys(top.results ?? {})).toHaveLength(40);
     expect(top.results?.w49).toBe(50);
   });
-  it("rating: average and star counts only after reveal", () => {
-    const rating: Poll = {
-      ...poll,
-      kind: "rating",
-      options: optionsFor("rating", null)!,
-      correct: undefined,
-    };
-    const votes = { "4": 1, "5": 1 };
-    const open = publicPoll(rating, votes);
-    expect(open.average).toBeUndefined();
-    expect(open.results).toBeUndefined();
-    const shown = publicPoll({ ...rating, status: "revealed" }, votes);
-    expect(shown.average).toBe(4.5);
-    expect(shown.results).toEqual({ "1": 0, "2": 0, "3": 0, "4": 1, "5": 1 });
-    const empty = publicPoll({ ...rating, status: "revealed" }, {});
-    expect(empty.average).toBeUndefined();
+  it("shows a stored poll of a retired kind as choice", () => {
+    const old = { ...poll, kind: "rating", status: "revealed" } as unknown;
+    const p = publicPoll(old as Poll, { A: 1 });
+    expect(p.kind).toBe("choice");
+    expect(p.results).toEqual({ A: 1, B: 0 });
   });
 });
 
@@ -144,20 +132,8 @@ describe("word cloud answers", () => {
   });
 });
 
-describe("ratings", () => {
-  it("averages star counts to one decimal", () => {
-    expect(ratingAverage({ "5": 2, "4": 1 })).toBe(4.7);
-    expect(ratingAverage({ "1": 1, "2": 1 })).toBe(1.5);
-    expect(ratingAverage({})).toBeNull();
-  });
-  it("has fixed options 1 to 5 and words has none", () => {
-    expect(optionsFor("rating", null)?.map((o) => o.label)).toEqual([
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-    ]);
+describe("poll options", () => {
+  it("words has none and choice needs 2 to 4", () => {
     expect(optionsFor("words", [{ label: "a" }])).toEqual([]);
     expect(optionsFor("choice", [{ label: "a" }])).toBeNull();
   });
@@ -186,19 +162,11 @@ describe("content packs", () => {
     bad.polls[0].options = bad.polls[0].options?.slice(0, 2);
     expect(packPolls(bad, 1)).toBeNull();
   });
-  it("builds word cloud and rating polls from the demo pack", () => {
+  it("builds word cloud polls from the demo pack", () => {
     const demo = PACKS.find((p) => p.id === "demo");
     const polls = packPolls(demo!, 1) ?? [];
     const words = polls.find((p) => p.kind === "words");
-    const rating = polls.find((p) => p.kind === "rating");
     expect(words?.options).toEqual([]);
-    expect(rating?.options.map((o) => o.key)).toEqual([
-      "1",
-      "2",
-      "3",
-      "4",
-      "5",
-    ]);
   });
   it("rejects unknown kinds and options or answers on other kinds", () => {
     const base = { id: "x", question: "Q" };
@@ -208,9 +176,7 @@ describe("content packs", () => {
     });
     expect(packPolls(pack({ kind: "essay" }), 1)).toBeNull();
     expect(packPolls(pack({ kind: "words", correct: "A" }), 1)).toBeNull();
-    expect(
-      packPolls(pack({ kind: "rating", options: [{ label: "a" }] }), 1),
-    ).toBeNull();
+    expect(packPolls(pack({ kind: "rating" }), 1)).toBeNull();
     expect(packPolls(pack({ kind: "words" }), 1)).toHaveLength(1);
   });
   it("loads the spot pack with image, text and audio rounds", () => {

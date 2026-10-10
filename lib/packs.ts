@@ -42,7 +42,7 @@ export function packPolls(pack: Pack, now: number): Poll[] | null {
     if (!isPollKind(kind)) return null;
     const options = optionsFor(kind, p.options);
     if (!options || !p.question?.trim()) return null;
-    // Word clouds and ratings have no options to list and no correct answer.
+    // Word clouds have no options to list and no correct answer.
     if (kind !== "choice" && (p.options || p.correct)) return null;
     if (p.correct && !options.some((o) => o.key === p.correct)) return null;
     polls.push({

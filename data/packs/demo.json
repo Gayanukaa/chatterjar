@@ -1,7 +1,7 @@
 {
   "id": "demo",
   "title": "Demo: warm-up polls",
-  "description": "Six general polls for any talk, class or event, with a word cloud and a rating.",
+  "description": "Five general polls for any talk, class or event, with a word cloud.",
   "polls": [
     {
       "id": "familiar",
@@ -37,11 +37,6 @@
       "id": "one-word",
       "kind": "words",
       "question": "Describe today's topic in one word."
-    },
-    {
-      "id": "useful",
-      "kind": "rating",
-      "question": "How useful has this session been so far?"
     },
     {
       "id": "wrap-up",

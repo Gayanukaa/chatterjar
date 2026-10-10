@@ -1,5 +1,3 @@
-import { documentLocale, getT } from "@/lib/i18n";
-
 export interface ApiResult<T = Record<string, unknown>> {
   ok: boolean;
   status: number;
@@ -29,7 +27,7 @@ export async function post<T = Record<string, unknown>>(
       ok: false,
       status: 0,
       data: {
-        error: getT(documentLocale())("common.noConnection"),
+        error: "No connection. Try again.",
       } as ApiResult<T>["data"],
     };
   }

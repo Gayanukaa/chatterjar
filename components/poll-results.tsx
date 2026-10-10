@@ -1,9 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
-import { Bars } from "@/components/bars";
-import { RATING_OPTIONS, topWords } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
+import { topWords } from "@/lib/domain";
 
 const TONES = [
   "text-blue",
@@ -22,12 +19,11 @@ export function WordCloud({
   results: Record<string, number>;
   large?: boolean;
 }) {
-  const t = useT();
   const ranked = topWords(results);
   if (!ranked.length) {
     return (
       <p className={large ? "text-3xl text-muted" : "text-muted"}>
-        {t("common.noAnswers")}
+        No answers yet.
       </p>
     );
   }
@@ -45,7 +41,7 @@ export function WordCloud({
   return (
     <ul
       data-testid="word-cloud"
-      aria-label={t("common.wordCloud")}
+      aria-label="Word cloud"
       className={`flex flex-wrap items-center justify-center ${large ? `h-full content-center-safe overflow-hidden ${many ? "gap-x-6 gap-y-2" : "gap-x-8 gap-y-3"}` : "gap-x-4 gap-y-1"}`}
     >
       {words.map(([w, n, i]) => (
@@ -59,47 +55,5 @@ export function WordCloud({
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Revealed rating: the average with a star, then bars from 5 down to 1. */
-export function RatingResults({
-  results,
-  average,
-  large = false,
-}: {
-  results: Record<string, number>;
-  average?: number;
-  large?: boolean;
-}) {
-  const t = useT();
-  const items = [...RATING_OPTIONS].reverse().map((o) => ({
-    key: o.key,
-    label: t("common.stars", { count: Number(o.key) }),
-    value: results[o.key] ?? 0,
-  }));
-  return (
-    <div
-      data-testid="rating-results"
-      className={large ? "space-y-8" : "space-y-4"}
-    >
-      <p className="flex items-center gap-3">
-        <Star
-          aria-hidden
-          className={`shrink-0 fill-amber text-amber ${large ? "size-16" : "size-9"}`}
-        />
-        <span
-          className={`font-heading font-bold tabular-nums leading-none ${large ? "text-8xl" : "text-5xl"}`}
-        >
-          {average === undefined ? "-" : average.toFixed(1)}
-        </span>
-        <span className={large ? "text-3xl text-muted" : "text-muted"}>
-          {average === undefined
-            ? t("common.noRatings")
-            : t("common.averageRating")}
-        </span>
-      </p>
-      <Bars items={items} large={large} />
-    </div>
   );
 }

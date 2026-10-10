@@ -3,7 +3,6 @@
 import { WifiOff } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { CreatePollForm } from "@/components/admin/create-poll-form";
-import { EmbedPanel } from "@/components/admin/embed-panel";
 import { KeyForm } from "@/components/admin/key-form";
 import { PollList } from "@/components/admin/poll-list";
 import { QuestionsPanel } from "@/components/admin/questions-panel";
@@ -12,21 +11,21 @@ import { ReviewPanel } from "@/components/admin/review-panel";
 import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
 import { roomPath } from "@/lib/api";
-import { useT } from "@/lib/i18n/react";
-import { POLL_MS } from "@/lib/poll-interval";
+import { POLL_MS } from "@/lib/use-room-state";
 import { useRoomState } from "@/lib/use-room-state";
 
 export function AdminPage({ room: code }: { room: string }) {
   const { key, data, offline, missing, keyError, signIn, act, download } =
     useAdmin(code);
   const room = useRoomState({ room: code, device: false });
-  const t = useT();
 
   if (missing || room.missing) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-4 text-center">
-        <h1 className="text-2xl font-semibold">{t("admin.roomMissing")}</h1>
-        <p className="mt-2 text-muted">{t("admin.roomMissingHint")}</p>
+        <h1 className="text-2xl font-semibold">This room does not exist</h1>
+        <p className="mt-2 text-muted">
+          Check the admin link. The room may have been deleted.
+        </p>
       </main>
     );
   }
@@ -43,28 +42,24 @@ export function AdminPage({ room: code }: { room: string }) {
         <div>
           <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-tight sm:text-4xl">
             <Logo className="size-10" />
-            {t("admin.title")}
+            Chatterjar admin
           </h1>
           <p className="mt-1 text-muted">
-            {t("admin.intro", {
-              room:
-                code === "main"
-                  ? t("admin.mainRoom")
-                  : t("admin.roomName", { code }),
-            })}
+            {code === "main" ? "Main room" : `Room ${code}`}: run polls, hide
+            questions and reset the room.
           </p>
           <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-semibold">
             <a
               className="inline-flex min-h-12 items-center text-blue underline-offset-4 hover:underline"
               href={roomPath(code)}
             >
-              {t("common.phonePage")}
+              Phone page
             </a>
             <a
               className="inline-flex min-h-12 items-center text-blue underline-offset-4 hover:underline"
               href={roomPath(code, "screen")}
             >
-              {t("common.projectorView")}
+              Projector view
             </a>
           </nav>
         </div>
@@ -78,10 +73,8 @@ export function AdminPage({ room: code }: { room: string }) {
             <span aria-hidden className="size-2 rounded-full bg-green" />
           )}
           {lost
-            ? t("admin.offline")
-            : t("admin.updates", {
-                seconds: Number((POLL_MS / 1000).toFixed(1)),
-              })}
+            ? "No connection. Trying again."
+            : `Updates every ${POLL_MS / 1000} seconds`}
         </p>
       </header>
 
@@ -123,7 +116,6 @@ export function AdminPage({ room: code }: { room: string }) {
               return res;
             }}
           />
-          <EmbedPanel room={code} />
         </div>
       </div>
     </main>

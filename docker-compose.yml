@@ -21,11 +21,7 @@ services:
     restart: unless-stopped
 
   app:
-    build:
-      context: .
-      args:
-        # Page refresh in ms (2000 to 15000); baked in at build time.
-        NEXT_PUBLIC_POLL_MS: ${NEXT_PUBLIC_POLL_MS:-3000}
+    build: .
     ports:
       - "3000:3000"
     environment:

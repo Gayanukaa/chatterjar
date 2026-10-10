@@ -1,19 +1,17 @@
 import { isPollKind, optionsFor, type Poll } from "@/lib/domain";
 import { adminRoute, body, fail, json } from "@/lib/http";
 import { db, k } from "@/lib/redis";
-import { t } from "@/lib/i18n";
 
 export const POST = adminRoute(async (req) => {
   const b = await body(req);
   const question = typeof b.question === "string" ? b.question.trim() : "";
   if (b.kind !== undefined && !isPollKind(b.kind)) {
-    return fail(t("api.pollKind"), 400);
+    return fail("Pick a poll type: choice or words.", 400);
   }
   const kind = isPollKind(b.kind) ? b.kind : "choice";
   const options = optionsFor(kind, b.options);
-  if (!question || question.length > 300)
-    return fail(t("api.pollQuestion"), 400);
-  if (!options) return fail(t("api.pollOptions"), 400);
+  if (!question || question.length > 300) return fail("Write a question.", 400);
+  if (!options) return fail("Add 2 to 4 options with text.", 400);
   // Only multiple choice polls can have a correct option.
   const correct =
     kind === "choice" && options.some((o) => o.key === b.correct)

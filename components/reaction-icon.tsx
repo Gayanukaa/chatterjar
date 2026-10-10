@@ -15,6 +15,13 @@ export const REACTION_ICONS: Record<Reaction, LucideIcon> = {
   confused: CircleQuestionMark,
 };
 
+export const REACTION_LABELS: Record<Reaction, string> = {
+  applause: "Applause",
+  love: "Love it",
+  idea: "Great point",
+  confused: "I'm lost",
+};
+
 export const REACTION_COLORS: Record<Reaction, string> = {
   applause: "text-amber",
   love: "text-rose",
