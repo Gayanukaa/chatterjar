@@ -82,8 +82,10 @@ export function useAdmin(room = "main") {
     );
     if (res.status === 401) return reject();
     if (res.status === 404) return setMissing(true);
-    setOffline(!res.ok);
-    if (res.ok) setData(res.data);
+    // A 200 without admin state (proxy or HTML page) counts as offline.
+    const ok = res.ok && Array.isArray(res.data.polls);
+    setOffline(!ok);
+    if (ok) setData(res.data);
   }, [key, reject, room]);
 
   useEffect(() => {

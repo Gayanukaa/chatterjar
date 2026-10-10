@@ -432,6 +432,10 @@ test("8. invite-only rooms keep data and admin keys separate", async ({
   expect(made.status()).toBe(201);
   const { code, token } = (await made.json()).room;
   const inRoom = (path: string) => `${path}?room=${code}`;
+  // The shared /r layout: bad codes 404 and ?theme= reaches the projector.
+  expect((await request.get("/r/x_y/screen")).status()).toBe(404);
+  const dark = await request.get(`/r/${code}/screen?theme=dark`);
+  expect(await dark.text()).toContain('data-theme="dark"');
 
   // The room token unlocks only its room; the main key does not unlock it.
   const poll = await request.post(inRoom("/api/admin/poll"), {
