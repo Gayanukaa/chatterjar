@@ -9,7 +9,7 @@ import { POLL_MS } from "@/lib/use-room-state";
 export type AdminPoll = Poll & { votes: Record<string, number> };
 export type PackSummary = ReturnType<typeof packSummaries>[number];
 export type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
-export interface AdminState {
+interface AdminState {
   activeId: string | null;
   polls: AdminPoll[];
   packs: PackSummary[];

@@ -30,7 +30,7 @@ export function getRid(req: NextRequest): string | null {
 const digest = (s: string) => createHash("sha256").update(s).digest();
 
 /** Constant-time compare of two secrets (equal-length digests). */
-export const sameSecret = (a: string, b: string) =>
+const sameSecret = (a: string, b: string) =>
   timingSafeEqual(digest(a), digest(b));
 
 const headerKey = (req: NextRequest) => req.headers.get("x-admin-key");
@@ -43,7 +43,7 @@ export function isAdmin(req: NextRequest): boolean {
 }
 
 /** True if x-admin-key matches SUPER_ADMIN_KEY (the owner, all rooms). */
-export function isSuper(req: NextRequest): boolean {
+function isSuper(req: NextRequest): boolean {
   const key = headerKey(req);
   const expected = process.env.SUPER_ADMIN_KEY;
   return Boolean(key && expected) && sameSecret(key!, expected!);

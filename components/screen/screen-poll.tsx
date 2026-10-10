@@ -1,5 +1,3 @@
-"use client";
-
 import { CircleCheck, Lock, Radio, Smartphone } from "lucide-react";
 import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";

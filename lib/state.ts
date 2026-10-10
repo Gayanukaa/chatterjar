@@ -15,7 +15,7 @@ import {
 import { db, k } from "./redis";
 import { currentRoom } from "./room";
 
-export type SharedState = Omit<RoomState, "me">;
+type SharedState = Omit<RoomState, "me">;
 type Hash = Record<string, unknown> | null;
 
 // The CDN caches /api/room too; this cache covers self-hosts without a CDN.

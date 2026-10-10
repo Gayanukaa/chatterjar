@@ -93,7 +93,7 @@ export const KIND_LABEL: Record<PollKind, string> = {
   words: "Word cloud",
 };
 export const MAX_WORD = 24;
-export const TOP_WORDS = 40;
+const TOP_WORDS = 40;
 // \p{M} keeps Sinhala and Tamil vowel signs; ZWJ/ZWNJ form Sinhala conjuncts.
 const WORD_PATTERN = /^[\p{L}\p{M}\p{N}\u200C\u200D -]+$/u;
 const WORD_CHAR = /[\p{L}\p{N}]/u;
@@ -208,7 +208,7 @@ export function validateQuestion(text: unknown): string | null {
 const MEDIA_TYPES: MediaType[] = ["image", "code", "text", "audio"];
 
 /** Valid option list (2 to 4, keys A to D), or null; media must be a site path. */
-export function parseOptions(raw: unknown): Option[] | null {
+function parseOptions(raw: unknown): Option[] | null {
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > 4) return null;
   const options: Option[] = [];
   for (const [i, o] of raw.entries()) {
