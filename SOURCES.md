@@ -1,9 +1,22 @@
 # Content sources and licences
 
-The MIT License in `LICENSE` covers the code only. The media and data below keep their own
-licences. Credit them when you show them.
+Chatterjar. Copyright (c) 2026 Gayanuka Amarasuriya. The code is licensed under the MIT
+License (see `LICENSE`).
+
+The MIT License covers the code only. The software, fonts, media and data below keep their
+own licences. Credit them when you show them.
+
+## Third-party software and fonts
+
+- Next.js, React, @upstash/redis: MIT License.
+- lucide-react icons: ISC License.
+- Bricolage Grotesque and Figtree fonts (through next/font/google): SIL Open Font
+  License 1.1.
 
 ## Spot the AI pack (`data/packs/spot-the-ai.json`)
+
+The media in `public/spot/assets` is under CC0, CC BY 3.0, CC BY-SA 4.0 and CC BY-NC 4.0,
+credited per file below. The MIT License does not cover these files.
 
 | Poll            | Files                                                                  | Source                                                                                                                                                                                                                                                      | Licence                                                                                  |
 | --------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -30,8 +43,7 @@ AI-generated audio that follows the original song, not a new song from a text pr
 
 ## Other packs
 
-`data/packs/demo.json` and `data/packs/claude-code-talk.json` are original content under the
-MIT License, like the code.
+`data/packs/demo.json` is original content under the MIT License, like the code.
 
 ## Rounds removed from the public repo
 
