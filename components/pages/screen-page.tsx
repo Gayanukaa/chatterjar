@@ -11,17 +11,13 @@ import {
 } from "@/components/screen/screen-reactions";
 import { ScreenTally } from "@/components/screen/screen-tally";
 import { ThemeToggle, useScreenTheme } from "@/components/screen/theme-toggle";
+import { useRoom } from "@/components/room";
 import type { ScreenTheme } from "@/lib/screen-theme";
 import { useRoomState } from "@/lib/use-room-state";
 
 /** Projector view (1600 x 900): poll, questions, quiz tally and reactions. */
-export function ScreenPage({
-  room,
-  initialTheme,
-}: {
-  room: string;
-  initialTheme?: ScreenTheme;
-}) {
+export function ScreenPage({ initialTheme }: { initialTheme?: ScreenTheme }) {
+  const room = useRoom();
   const { state, offline, missing } = useRoomState({ room, device: false });
   const { theme, toggle } = useScreenTheme(initialTheme);
 

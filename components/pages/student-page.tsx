@@ -12,6 +12,7 @@ import { QuestionsPanel } from "@/components/student/questions-panel";
 import { QuizPanel } from "@/components/student/quiz-panel";
 import { ReactionBar } from "@/components/student/reaction-bar";
 import { VotePanel } from "@/components/student/vote-panel";
+import { useRoom } from "@/components/room";
 import { useRoomState } from "@/lib/use-room-state";
 
 const TABS = [
@@ -22,7 +23,8 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 /** Student page: vote, ask questions, take the quiz and send reactions. */
-export function StudentPage({ room }: { room: string }) {
+export function StudentPage() {
+  const room = useRoom();
   const { state, offline, missing, refresh } = useRoomState({ room });
   const [tab, setTab] = useState<TabId>("vote");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
