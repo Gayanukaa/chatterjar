@@ -405,7 +405,7 @@ test("7. admin can withdraw the poll and reset the room", async ({
     timeout: SYNC,
   });
 
-  const lecturer = await device(browser, `/admin?key=${ADMIN_KEY}`);
+  const lecturer = await device(browser, `/admin#key=${ADMIN_KEY}`);
   const withdraw = lecturer.page.getByRole("button", { name: "Withdraw poll" });
   await expect(withdraw).toBeEnabled({ timeout: SYNC });
   await withdraw.click();
