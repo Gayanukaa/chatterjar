@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { withRoom } from "./api";
 import type { DeviceState, RoomState } from "./domain";
-import { POLL_MS } from "./poll-interval";
+
+// 3 s keeps a 90-phone room inside the free Vercel and Upstash tiers.
+export const POLL_MS = 3000;
 
 type Shared = Omit<RoomState, "me">;
 const NO_DEVICE: DeviceState = { vote: null, upvoted: [], persona: null };

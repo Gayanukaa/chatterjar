@@ -15,11 +15,8 @@ const ADMIN_KEY = process.env.BASE_URL
   : (process.env.E2E_ADMIN_KEY ?? "e2e-key");
 // Every question this suite posts starts with this tag, so cleanup finds it.
 const TAG = "E2E";
-// Client poll + 1 s server cache + render: 3 polls, at least 10 s.
-const SYNC = Math.max(
-  10_000,
-  3 * (Number(process.env.NEXT_PUBLIC_POLL_MS) || 3000),
-);
+// 3 s client poll + 1 s server cache + render: at least 3 polls.
+const SYNC = 10_000;
 
 interface State {
   poll: {
@@ -63,9 +60,10 @@ async function openPoll(request: APIRequestContext): Promise<string> {
   return poll.id;
 }
 
+/** Shared room state; the unique query skips the 1 s CDN cache. */
 async function getState(request: APIRequestContext): Promise<State> {
-  const res = await request.get("/api/state");
-  expect(res.ok(), `/api/state: ${res.status()}`).toBe(true);
+  const res = await request.get(`/api/room?t=${Date.now()}`);
+  expect(res.ok(), `/api/room: ${res.status()}`).toBe(true);
   return res.json();
 }
 
@@ -264,7 +262,7 @@ test("3. hidden question disappears from both devices", async ({
   const posted = (await getState(request)).questions.find(
     (q) => q.text === text,
   );
-  expect(posted, "posted question in /api/state").toBeTruthy();
+  expect(posted, "posted question in /api/room").toBeTruthy();
   const start = Date.now();
   await admin(request, "/api/admin/hide", { id: posted!.id });
 

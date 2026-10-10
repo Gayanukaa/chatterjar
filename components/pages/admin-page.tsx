@@ -13,7 +13,7 @@ import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
 import { roomPath } from "@/lib/api";
 import { useT } from "@/lib/i18n/react";
-import { POLL_MS } from "@/lib/poll-interval";
+import { POLL_MS } from "@/lib/use-room-state";
 import { useRoomState } from "@/lib/use-room-state";
 
 export function AdminPage({ room: code }: { room: string }) {
@@ -80,7 +80,7 @@ export function AdminPage({ room: code }: { room: string }) {
           {lost
             ? t("admin.offline")
             : t("admin.updates", {
-                seconds: Number((POLL_MS / 1000).toFixed(1)),
+                seconds: POLL_MS / 1000,
               })}
         </p>
       </header>

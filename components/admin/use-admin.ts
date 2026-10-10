@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { post, withRoom } from "@/lib/api";
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
-import { POLL_MS } from "@/lib/poll-interval";
+import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
 export interface PackSummary {
@@ -41,7 +41,7 @@ function saveKey(room: string, key: string | null) {
   }
 }
 
-/** Admin key (from #key=, ?key= or sessionStorage) and admin state every POLL_MS. */
+/** Admin key (from #key= or sessionStorage) and admin state every POLL_MS. */
 export function useAdmin(room = "main") {
   const t = useT();
   // undefined: not read yet; null: no key, show the key form.
@@ -61,21 +61,18 @@ export function useAdmin(room = "main") {
   useEffect(() => {
     const timer = setTimeout(() => {
       const url = new URL(window.location.href);
-      // #key= is preferred: fragments never reach the server or its logs.
+      // #key= only: fragments never reach the server or its logs.
       const fromHash = new URLSearchParams(url.hash.slice(1)).get("key");
-      const fromUrl = fromHash || url.searchParams.get("key");
-      if (fromUrl) {
-        saveKey(room, fromUrl);
-        url.searchParams.delete("key");
-        if (fromHash) url.hash = "";
+      if (fromHash) {
+        saveKey(room, fromHash);
         // Removes the key from the address bar and history.
         window.history.replaceState(
           window.history.state,
           "",
-          url.pathname + url.search + url.hash,
+          url.pathname + url.search,
         );
       }
-      setKey(fromUrl || readKey(room));
+      setKey(fromHash || readKey(room));
     }, 0);
     return () => clearTimeout(timer);
   }, [room]);
