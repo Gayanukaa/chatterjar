@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { post, withRoom } from "@/lib/api";
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
-import { POLL_MS } from "@/lib/poll-interval";
+import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
 export interface PackSummary {
@@ -41,9 +40,8 @@ function saveKey(room: string, key: string | null) {
   }
 }
 
-/** Admin key (from #key=, ?key= or sessionStorage) and admin state every POLL_MS. */
+/** Admin key (from #key= or sessionStorage) and admin state every POLL_MS. */
 export function useAdmin(room = "main") {
-  const t = useT();
   // undefined: not read yet; null: no key, show the key form.
   const [key, setKey] = useState<string | null | undefined>(undefined);
   const [data, setData] = useState<AdminState | null>(null);
@@ -55,27 +53,24 @@ export function useAdmin(room = "main") {
     saveKey(room, null);
     setKey(null);
     setData(null);
-    setKeyError(t("admin.key.wrong"));
-  }, [room, t]);
+    setKeyError("This admin key is wrong. Enter the correct key.");
+  }, [room]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       const url = new URL(window.location.href);
-      // #key= is preferred: fragments never reach the server or its logs.
+      // #key= only: fragments never reach the server or its logs.
       const fromHash = new URLSearchParams(url.hash.slice(1)).get("key");
-      const fromUrl = fromHash || url.searchParams.get("key");
-      if (fromUrl) {
-        saveKey(room, fromUrl);
-        url.searchParams.delete("key");
-        if (fromHash) url.hash = "";
+      if (fromHash) {
+        saveKey(room, fromHash);
         // Removes the key from the address bar and history.
         window.history.replaceState(
           window.history.state,
           "",
-          url.pathname + url.search + url.hash,
+          url.pathname + url.search,
         );
       }
-      setKey(fromUrl || readKey(room));
+      setKey(fromHash || readKey(room));
     }, 0);
     return () => clearTimeout(timer);
   }, [room]);
@@ -137,9 +132,9 @@ export function useAdmin(room = "main") {
         });
         if (res.status === 401) {
           reject();
-          return t("admin.key.wrongShort");
+          return "This admin key is wrong.";
         }
-        if (!res.ok) return t("admin.downloadFailed");
+        if (!res.ok) return "Could not download the results. Try again.";
         const name = /filename="([^"]+)"/.exec(
           res.headers.get("content-disposition") ?? "",
         )?.[1];
@@ -152,10 +147,10 @@ export function useAdmin(room = "main") {
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
         return null;
       } catch {
-        return t("common.noConnection");
+        return "No connection. Try again.";
       }
     },
-    [key, reject, room, t],
+    [key, reject, room],
   );
 
   return { key, data, offline, missing, keyError, signIn, act, download };

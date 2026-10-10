@@ -15,11 +15,8 @@ const ADMIN_KEY = process.env.BASE_URL
   : (process.env.E2E_ADMIN_KEY ?? "e2e-key");
 // Every question this suite posts starts with this tag, so cleanup finds it.
 const TAG = "E2E";
-// Client poll + 1 s server cache + render: 3 polls, at least 10 s.
-const SYNC = Math.max(
-  10_000,
-  3 * (Number(process.env.NEXT_PUBLIC_POLL_MS) || 3000),
-);
+// 3 s client poll + 1 s server cache + render: at least 3 polls.
+const SYNC = 10_000;
 
 interface State {
   poll: {
@@ -63,9 +60,10 @@ async function openPoll(request: APIRequestContext): Promise<string> {
   return poll.id;
 }
 
+/** Shared room state; the unique query skips the 1 s CDN cache. */
 async function getState(request: APIRequestContext): Promise<State> {
-  const res = await request.get("/api/state");
-  expect(res.ok(), `/api/state: ${res.status()}`).toBe(true);
+  const res = await request.get(`/api/room?t=${Date.now()}`);
+  expect(res.ok(), `/api/room: ${res.status()}`).toBe(true);
   return res.json();
 }
 
@@ -264,7 +262,7 @@ test("3. hidden question disappears from both devices", async ({
   const posted = (await getState(request)).questions.find(
     (q) => q.text === text,
   );
-  expect(posted, "posted question in /api/state").toBeTruthy();
+  expect(posted, "posted question in /api/room").toBeTruthy();
   const start = Date.now();
   await admin(request, "/api/admin/hide", { id: posted!.id });
 
@@ -407,7 +405,7 @@ test("7. admin can withdraw the poll and reset the room", async ({
     timeout: SYNC,
   });
 
-  const lecturer = await device(browser, `/admin?key=${ADMIN_KEY}`);
+  const lecturer = await device(browser, `/admin#key=${ADMIN_KEY}`);
   const withdraw = lecturer.page.getByRole("button", { name: "Withdraw poll" });
   await expect(withdraw).toBeEnabled({ timeout: SYNC });
   await withdraw.click();
@@ -685,49 +683,25 @@ test("12. word cloud takes one answer per device and shows words on reveal", asy
   }
 });
 
-test("13. an unsupported ?lang= still renders English with html lang en", async ({
+test("13. a French browser still gets English with html lang en", async ({
   browser,
 }) => {
-  // A French browser with ?lang=xx: neither is supported, so en is used.
-  const { page } = await device(browser, "/?lang=xx", { locale: "fr-FR" });
+  const { page } = await device(browser, "/", { locale: "fr-FR" });
   await expect(page.getByRole("heading", { name: "Chatterjar" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Vote" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Questions" })).toBeVisible();
-  // "Live" needs hydrated state, so the locale provider has run by now.
   await expect(page.getByText("Live", { exact: true })).toBeVisible({
     timeout: SYNC,
   });
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 
-test("14. embed view shows the QR and only embed pages allow framing", async ({
-  browser,
-  request,
-}) => {
-  const embed = await request.get("/embed?show=qr");
-  expect(embed.status()).toBe(200);
-  expect(embed.headers()["content-security-policy"]).toContain(
-    "frame-ancestors *",
-  );
-  expect(embed.headers()["x-frame-options"]).toBeUndefined();
-  // Embed pages read shared state only, so they set no device cookie.
-  expect(embed.headers()["set-cookie"]).toBeUndefined();
-
-  const home = await request.get("/");
-  expect(home.headers()["content-security-policy"]).toContain(
-    "frame-ancestors 'none'",
-  );
-  expect(home.headers()["x-frame-options"]).toBe("DENY");
-
-  // A small slide-sized frame: the QR shows and the page does not scroll.
-  const { page } = await device(browser, "/embed?show=qr", {
-    viewport: { width: 640, height: 360 },
-  });
-  await expect(page.getByTestId("screen-qr")).toBeVisible({ timeout: SYNC });
-  const fits = await page.evaluate(
-    () =>
-      document.documentElement.scrollHeight <= window.innerHeight &&
-      document.documentElement.scrollWidth <= window.innerWidth,
-  );
-  expect(fits).toBe(true);
+test("14. pages refuse to be framed by other sites", async ({ request }) => {
+  for (const path of ["/", "/screen", "/admin"]) {
+    const res = await request.get(path);
+    expect(res.headers()["content-security-policy"], path).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(res.headers()["x-frame-options"], path).toBe("DENY");
+  }
 });

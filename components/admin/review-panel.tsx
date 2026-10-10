@@ -4,14 +4,13 @@ import { Check, ShieldAlert, X } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import type { PendingQuestion } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, Section } from "./ui";
 
 type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
 
-const REASONS = ["language", "link"] as const;
-const isReason = (v: string): v is (typeof REASONS)[number] =>
-  (REASONS as readonly string[]).includes(v);
+const REASONS = { language: "Strong language", link: "Contains a link" };
+const isReason = (v: string): v is keyof typeof REASONS =>
+  Object.hasOwn(REASONS, v);
 
 /** Review setting plus the queue of questions that wait for the host. */
 export function ReviewPanel({
@@ -27,7 +26,6 @@ export function ReviewPanel({
   act: Act;
   onDone: () => void;
 }) {
-  const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   // The new value shows until the next admin state differs from `from`.
@@ -53,7 +51,7 @@ export function ReviewPanel({
       "settings",
       "/api/admin/settings",
       { moderate: value },
-      t("admin.review.saveFailed"),
+      "Could not save the setting. Try again.",
     );
     if (!ok) setOverride(null);
   }
@@ -64,14 +62,14 @@ export function ReviewPanel({
       approve ? "/api/admin/approve" : "/api/admin/hide",
       { id },
       approve
-        ? t("admin.review.approveFailed")
-        : t("admin.review.rejectFailed"),
+        ? "Could not approve it. Try again."
+        : "Could not reject it. Try again.",
     );
     onDone();
   }
 
   return (
-    <Section id="review-heading" title={t("admin.review.heading")}>
+    <Section id="review-heading" title="Question review">
       <div className="grid gap-4">
         <div className="rounded-xl border border-line bg-white p-4">
           <label className="flex min-h-12 cursor-pointer items-center gap-3 font-semibold">
@@ -82,28 +80,28 @@ export function ReviewPanel({
               disabled={checked === null || busy === "settings"}
               onChange={(e) => void toggle(e.target.checked)}
             />
-            {t("admin.review.toggle")}
+            Approve questions before they show
           </label>
           <p className="mt-1 text-sm text-muted">
-            {t("admin.review.toggleHint")}
+            Questions with strong language or a link always wait here.
           </p>
         </div>
         {error && <ErrorText>{error}</ErrorText>}
         {pending === null ? (
-          <p className="text-muted">{t("admin.review.loading")}</p>
+          <p className="text-muted">Loading questions...</p>
         ) : pending.length === 0 ? (
           <p className="rounded-xl border border-dashed border-line px-4 py-6 text-muted">
-            {t("admin.review.empty")}
+            No questions wait for review.
           </p>
         ) : (
           <>
             {total > pending.length && (
               <p className="text-sm text-muted">
-                {t("admin.review.showing", { shown: pending.length, total })}
+                Showing {pending.length} of {total}
               </p>
             )}
             <ul
-              aria-label={t("admin.review.listLabel")}
+              aria-label="Questions to review"
               className="divide-y divide-line rounded-xl border border-line bg-white"
             >
               {pending.map((q) => (
@@ -116,9 +114,7 @@ export function ReviewPanel({
                     {q.flagged && (
                       <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-amber/10 px-2.5 py-0.5 text-sm font-medium text-amber">
                         <ShieldAlert aria-hidden className="size-4" />
-                        {isReason(q.flagged)
-                          ? t(`admin.review.reasons.${q.flagged}`)
-                          : t("admin.review.flagged")}
+                        {isReason(q.flagged) ? REASONS[q.flagged] : "Flagged"}
                       </span>
                     )}
                     <p
@@ -137,7 +133,7 @@ export function ReviewPanel({
                       disabled={busy !== null}
                     >
                       <Check aria-hidden />
-                      {t("admin.review.approve")}
+                      Approve
                     </Button>
                     <Button
                       variant="danger"
@@ -147,7 +143,7 @@ export function ReviewPanel({
                       disabled={busy !== null}
                     >
                       <X aria-hidden />
-                      {t("admin.review.reject")}
+                      Reject
                     </Button>
                   </div>
                 </li>

@@ -12,20 +12,18 @@ import { QuestionsPanel } from "@/components/student/questions-panel";
 import { QuizPanel } from "@/components/student/quiz-panel";
 import { ReactionBar } from "@/components/student/reaction-bar";
 import { VotePanel } from "@/components/student/vote-panel";
-import { useT } from "@/lib/i18n/react";
 import { useRoomState } from "@/lib/use-room-state";
 
 const TABS = [
-  { id: "vote", Icon: Vote },
-  { id: "questions", Icon: MessageCircleQuestionMark },
-  { id: "quiz", Icon: Compass },
+  { id: "vote", label: "Vote", Icon: Vote },
+  { id: "questions", label: "Questions", Icon: MessageCircleQuestionMark },
+  { id: "quiz", label: "Quiz", Icon: Compass },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
 /** Student page: vote, ask questions, take the quiz and send reactions. */
 export function StudentPage({ room }: { room: string }) {
   const { state, offline, missing, refresh } = useRoomState({ room });
-  const t = useT();
   const [tab, setTab] = useState<TabId>("vote");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -42,7 +40,7 @@ export function StudentPage({ room }: { room: string }) {
       <header className="flex items-center justify-between gap-3 px-4 pt-5 pb-3">
         <h1 className="flex items-center gap-2 text-[2rem] leading-none font-bold tracking-[-0.03em]">
           <Logo className="size-9" />
-          {t("common.appName")}
+          Chatterjar
         </h1>
         <p
           role="status"
@@ -54,12 +52,12 @@ export function StudentPage({ room }: { room: string }) {
                 aria-hidden
                 className="size-4 text-amber motion-safe:animate-spin"
               />
-              {t("student.reconnecting")}
+              Reconnecting...
             </>
           ) : state && !missing ? (
             <>
               <span aria-hidden className="size-2 rounded-full bg-green" />
-              {t("student.live")}
+              Live
             </>
           ) : null}
         </p>
@@ -67,10 +65,10 @@ export function StudentPage({ room }: { room: string }) {
 
       <div
         role="tablist"
-        aria-label={t("student.tabsLabel")}
+        aria-label="Room sections"
         className="sticky top-0 z-10 grid grid-cols-3 border-b border-line bg-paper/95 px-2 backdrop-blur-sm"
       >
-        {TABS.map(({ id, Icon }, i) => {
+        {TABS.map(({ id, label, Icon }, i) => {
           const active = tab === id;
           return (
             <button
@@ -92,7 +90,7 @@ export function StudentPage({ room }: { room: string }) {
                 aria-hidden
                 className={`size-5 ${active ? "text-blue" : ""}`}
               />
-              {t(`student.tabs.${id}`)}
+              {label}
               <span
                 aria-hidden
                 className={`absolute inset-x-3 bottom-0 h-[3px] rounded-t-full transition-colors ${active ? "bg-blue" : "bg-transparent"}`}
@@ -113,12 +111,11 @@ export function StudentPage({ room }: { room: string }) {
         >
           {missing ? (
             <p className="py-10 text-center text-muted">
-              {t("student.roomMissing")}
+              This room does not exist. Check the link or scan the QR code
+              again.
             </p>
           ) : !state ? (
-            <p className="py-10 text-center text-muted">
-              {t("student.loading")}
-            </p>
+            <p className="py-10 text-center text-muted">Loading the room...</p>
           ) : id === "vote" ? (
             <VotePanel
               poll={state.poll}

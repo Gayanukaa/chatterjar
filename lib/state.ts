@@ -120,9 +120,3 @@ export async function deviceState(
     persona: isPersona(persona) ? persona : null,
   };
 }
-
-/** Shared plus device state in one response (GET /api/state, tests, scripts). */
-export async function getState(rid: string | null): Promise<RoomState> {
-  const shared = await sharedState();
-  return { ...shared, me: await deviceState(rid, shared.poll?.id ?? null) };
-}
