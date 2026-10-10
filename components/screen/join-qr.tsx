@@ -27,7 +27,7 @@ export function JoinQr() {
   return (
     <figure
       data-testid="screen-qr"
-      className={`flex items-center gap-5 rounded-2xl bg-white p-4 ring-1 ring-line ${styles.qrCard}`}
+      className={`flex shrink-0 items-center gap-5 rounded-2xl bg-white p-4 ring-1 ring-line ${styles.qrCard}`}
     >
       <div
         role="img"
