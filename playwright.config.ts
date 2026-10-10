@@ -11,11 +11,10 @@ process.env.E2E_ADMIN_KEY = adminKey;
 export default defineConfig({
   testDir: "tests/e2e",
   timeout: 60_000,
+  // 3 s client poll + 1 s server cache + render: at least 3 polls.
   expect: { timeout: 10_000 },
   // Tests share one Redis prefix and one active poll, so run them in order.
   workers: 1,
-  fullyParallel: false,
-  retries: 0,
   use: { baseURL },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: remote
@@ -23,7 +22,6 @@ export default defineConfig({
     : {
         command: "npx next dev -p 3100",
         url: baseURL,
-        reuseExistingServer: false,
         timeout: 120_000,
         env: {
           ...(process.env as Record<string, string>),

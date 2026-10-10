@@ -10,7 +10,6 @@ import {
   Radio,
 } from "lucide-react";
 import { useState } from "react";
-import type { ApiResult } from "@/lib/api";
 import {
   KIND_LABEL,
   kindOf,
@@ -19,9 +18,12 @@ import {
   type PollStatus,
 } from "@/lib/domain";
 import { Button, ErrorText, FIELD, Section } from "./ui";
-import type { AdminPoll, PackSummary } from "./use-admin";
-
-type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
+import {
+  useAction,
+  type Act,
+  type AdminPoll,
+  type PackSummary,
+} from "./use-admin";
 
 const CHIP: Record<PollStatus, string> = {
   open: "bg-green/10 text-green",
@@ -54,18 +56,12 @@ export function PollList({
   act: Act;
 }) {
   const [pack, setPack] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, run: start } = useAction();
   // Answers stay hidden until reveal, in case /admin is on a shared screen.
   const [peek, setPeek] = useState<string | null>(null);
 
-  async function run(tag: string, path: string, payload?: unknown) {
-    setBusy(tag);
-    setError(null);
-    const res = await act(path, payload);
-    if (!res.ok) setError(res.data.error ?? "The action failed. Try again.");
-    setBusy(null);
-  }
+  const run = (tag: string, path: string, payload?: unknown) =>
+    start(tag, () => act(path, payload), "The action failed. Try again.");
 
   return (
     <Section

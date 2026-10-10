@@ -4,38 +4,18 @@ import { Check, Copy, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { KeyForm } from "@/components/admin/key-form";
 import { Button, ErrorText, FIELD, Section } from "@/components/admin/ui";
+import { readKey, saveKey } from "@/components/admin/use-admin";
 import { Logo } from "@/components/logo";
-import { roomPath } from "@/lib/api";
+import { request, roomPath } from "@/lib/api";
+import type { RoomInfo } from "@/lib/rooms";
 
-interface Room {
-  code: string;
-  title: string;
-  createdAt: number;
-}
-
-const STORE = "room-super-key";
-
-function readKey(): string | null {
-  try {
-    return sessionStorage.getItem(STORE);
-  } catch {
-    return null;
-  }
-}
-
-function saveKey(key: string | null) {
-  try {
-    if (key) sessionStorage.setItem(STORE, key);
-    else sessionStorage.removeItem(STORE);
-  } catch {
-    // Private mode: the key lives in memory for this tab only.
-  }
-}
+// Room codes are [a-z0-9], so this storage name never clashes with a room.
+const OWNER = "_owner";
 
 /** Owner console: create invite-only rooms and hand out their admin links. */
 export function RoomsPage() {
   const [key, setKey] = useState<string | null | undefined>(undefined);
-  const [rooms, setRooms] = useState<Room[] | null>(null);
+  const [rooms, setRooms] = useState<RoomInfo[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [keyError, setKeyError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -47,39 +27,25 @@ export function RoomsPage() {
   const [busy, setBusy] = useState(false);
 
   const call = useCallback(
-    async (method: string, path: string, payload?: unknown) => {
-      let res: Response;
-      try {
-        res = await fetch(path, {
-          method,
-          cache: "no-store",
-          headers: {
-            "content-type": "application/json",
-            "x-admin-key": key ?? "",
-          },
-          body: payload ? JSON.stringify(payload) : undefined,
-        });
-      } catch {
-        return { ok: false, data: { error: "No connection. Try again." } };
-      }
-      const data = await res.json().catch(() => ({}));
+    async <T,>(method: string, path: string, payload?: unknown) => {
+      const res = await request<T>(method, path, payload, key ?? undefined);
       if (res.status === 401 || res.status === 403) {
-        saveKey(null);
+        saveKey(OWNER, null);
         setKey(null);
-        setKeyError(data.error ?? "This owner key is wrong.");
+        setKeyError(res.data.error ?? "This owner key is wrong.");
       }
-      return { ok: res.ok, data };
+      return res;
     },
     [key],
   );
 
   const load = useCallback(async () => {
-    const res = await call("GET", "/api/super/rooms");
+    const res = await call<{ rooms: RoomInfo[] }>("GET", "/api/super/rooms");
     if (res.ok) setRooms(res.data.rooms);
   }, [call]);
 
   useEffect(() => {
-    const t = setTimeout(() => setKey(readKey()), 0);
+    const t = setTimeout(() => setKey(readKey(OWNER)), 0);
     return () => clearTimeout(t);
   }, []);
 
@@ -93,25 +59,23 @@ export function RoomsPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const res = await call("POST", "/api/super/rooms", { title });
+    const res = await call<{ room: RoomInfo & { token: string } }>(
+      "POST",
+      "/api/super/rooms",
+      { title },
+    );
     setBusy(false);
     if (!res.ok)
       return setError(res.data.error ?? "Could not create the room.");
     const { code, token } = res.data.room;
     const adminUrl = `${window.location.origin}${roomPath(code, "admin")}#key=${token}`;
     setCreated({ title: res.data.room.title, adminUrl });
-    // Show the new room at once; load() then confirms the list from Redis.
-    const { title: roomTitle, createdAt } = res.data.room;
-    setRooms((list) => [
-      { code, title: roomTitle, createdAt },
-      ...(list ?? []),
-    ]);
     setCopied(false);
     setTitle("");
     void load();
   }
 
-  async function remove(room: Room) {
+  async function remove(room: RoomInfo) {
     if (
       !window.confirm(
         `Delete "${room.title}"? All of its polls, votes, questions and quiz answers are deleted.`,
@@ -136,7 +100,7 @@ export function RoomsPage() {
         button="Open rooms"
         error={keyError}
         onSubmit={(next) => {
-          saveKey(next);
+          saveKey(OWNER, next);
           setKeyError(null);
           setKey(next);
         }}

@@ -4,21 +4,22 @@ export interface ApiResult<T = Record<string, unknown>> {
   data: T & { error?: string };
 }
 
-/** POSTs JSON; adds the admin key header when one is given. */
-export async function post<T = Record<string, unknown>>(
+/** Sends a JSON request; adds the admin key header when one is given. */
+export async function request<T = Record<string, unknown>>(
+  method: string,
   path: string,
-  payload: unknown = {},
+  payload?: unknown,
   adminKey?: string,
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = {
-    "content-type": "application/json",
-  };
+  const headers: Record<string, string> = {};
+  if (payload !== undefined) headers["content-type"] = "application/json";
   if (adminKey) headers["x-admin-key"] = adminKey;
   try {
     const res = await fetch(path, {
-      method: "POST",
+      method,
+      cache: "no-store",
       headers,
-      body: JSON.stringify(payload),
+      body: payload === undefined ? undefined : JSON.stringify(payload),
     });
     const data = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, data };
@@ -32,6 +33,13 @@ export async function post<T = Record<string, unknown>>(
     };
   }
 }
+
+/** POSTs JSON; adds the admin key header when one is given. */
+export const post = <T = Record<string, unknown>>(
+  path: string,
+  payload: unknown = {},
+  adminKey?: string,
+) => request<T>("POST", path, payload, adminKey);
 
 /** Adds ?room= to an API path; the main room needs no parameter. */
 export function withRoom(path: string, room: string) {

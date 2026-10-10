@@ -5,32 +5,10 @@ import {
   votesFromScore,
   type Persona,
   type Poll,
-  type PollKind,
-  type PollStatus,
 } from "./domain";
 
 export type ExportFormat = "json" | "csv";
-
-export interface SessionExport {
-  room: string;
-  exportedAt: string;
-  polls: {
-    id: string;
-    question: string;
-    kind: PollKind;
-    status: PollStatus;
-    options: { key: string; label: string; votes: number }[];
-    correct: string | null;
-    total: number;
-  }[];
-  questions: {
-    text: string;
-    votes: number;
-    createdAt: string;
-    hidden: boolean;
-  }[];
-  quiz: { tally: Record<Persona, number> };
-}
+export type SessionExport = ReturnType<typeof buildExport>;
 
 /** Raw question data: rank score when visible, saved score when hidden. */
 export interface RawQuestion {
@@ -53,7 +31,7 @@ export function buildExport(input: {
   polls: { poll: Poll; votes: Record<string, unknown> | null }[];
   questions: RawQuestion[];
   tally: Record<string, unknown> | null;
-}): SessionExport {
+}) {
   const polls = input.polls.map(({ poll, votes }) => {
     const kind = kindOf(poll);
     // Word clouds have no fixed options: every distinct answer is a row.
@@ -119,56 +97,41 @@ const CSV_HEADER = [
   "correct",
   "hidden",
   "created_at",
-];
+] as const;
+
+type CsvRow = Partial<
+  Record<(typeof CSV_HEADER)[number], string | number | boolean | null>
+>;
 
 /** One CSV with a section column (poll, question, quiz); CRLF line ends. */
 export function toCsv(data: SessionExport): string {
-  const rows: (string | number | boolean | null)[][] = [CSV_HEADER];
+  const rows: CsvRow[] = [];
   for (const p of data.polls)
     for (const o of p.options)
-      rows.push([
-        "poll",
-        p.id,
-        p.status,
-        p.question,
-        o.key,
-        o.label,
-        o.votes,
-        p.total,
-        p.correct == null ? null : o.key === p.correct,
-        null,
-        null,
-      ]);
+      rows.push({
+        section: "poll",
+        poll_id: p.id,
+        status: p.status,
+        text: p.question,
+        option: o.key,
+        label: o.label,
+        votes: o.votes,
+        total: p.total,
+        correct: p.correct == null ? null : o.key === p.correct,
+      });
   for (const q of data.questions)
-    rows.push([
-      "question",
-      null,
-      null,
-      q.text,
-      null,
-      null,
-      q.votes,
-      null,
-      null,
-      q.hidden,
-      q.createdAt,
-    ]);
+    rows.push({
+      section: "question",
+      text: q.text,
+      votes: q.votes,
+      hidden: q.hidden,
+      created_at: q.createdAt,
+    });
   const quizTotal = Object.values(data.quiz.tally).reduce((a, b) => a + b, 0);
   for (const [persona, n] of Object.entries(data.quiz.tally))
-    rows.push([
-      "quiz",
-      null,
-      null,
-      null,
-      null,
-      persona,
-      n,
-      quizTotal,
-      null,
-      null,
-      null,
-    ]);
-  return rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+    rows.push({ section: "quiz", label: persona, votes: n, total: quizTotal });
+  const lines = rows.map((r) => CSV_HEADER.map((h) => csvCell(r[h] ?? null)));
+  return [CSV_HEADER, ...lines].map((r) => r.join(",")).join("\r\n") + "\r\n";
 }
 
 /** Download name: chatterjar-<room>-<yyyy-mm-dd>.<ext> (UTC date). */

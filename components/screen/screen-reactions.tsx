@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  REACTION_COLORS,
-  REACTION_ICONS,
-  REACTION_LABELS,
-} from "@/components/reaction-icon";
+import { REACTIONS } from "@/components/reaction-icon";
 import { REACTION_TYPES, reactionBursts, type Reaction } from "@/lib/domain";
 import styles from "./screen.module.css";
 
@@ -55,7 +51,7 @@ export function ReactionLayer({
       className="pointer-events-none fixed inset-0 z-20 overflow-hidden lg:right-[30%]"
     >
       {floats.map((f) => {
-        const Icon = REACTION_ICONS[f.type];
+        const { Icon, color } = REACTIONS[f.type];
         return (
           <span
             key={f.id}
@@ -63,7 +59,7 @@ export function ReactionLayer({
             style={{ left: `${f.left}%`, animationDelay: `${f.delay}s` }}
             onAnimationEnd={() => done(f.id)}
           >
-            <Icon className={`size-11 ${REACTION_COLORS[f.type]}`} />
+            <Icon className={`size-11 ${color}`} />
           </span>
         );
       })}
@@ -84,11 +80,11 @@ export function ReactionTotals({
       className="flex items-center gap-5 text-lg text-muted"
     >
       {REACTION_TYPES.map((type) => {
-        const Icon = REACTION_ICONS[type];
+        const { Icon, label, color } = REACTIONS[type];
         return (
           <li key={type} className="flex items-center gap-1.5">
-            <Icon aria-hidden className={`size-5 ${REACTION_COLORS[type]}`} />
-            <span className="sr-only">{REACTION_LABELS[type]}:</span>
+            <Icon aria-hidden className={`size-5 ${color}`} />
+            <span className="sr-only">{label}:</span>
             <span className="font-semibold text-ink tabular-nums">
               {reactions[type] ?? 0}
             </span>

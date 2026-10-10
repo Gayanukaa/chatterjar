@@ -1,10 +1,10 @@
 "use client";
 
 import { ArrowBigUp, EyeOff } from "lucide-react";
-import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import type { Question } from "@/lib/domain";
 import { Button, ErrorText, Section } from "./ui";
+import { useAction } from "./use-admin";
 
 /** Visible student questions with upvotes and a Hide button for each. */
 export function QuestionsPanel({
@@ -14,16 +14,9 @@ export function QuestionsPanel({
   questions: Question[] | null;
   onHide: (id: string) => Promise<ApiResult>;
 }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function hide(id: string) {
-    setBusy(id);
-    setError(null);
-    const res = await onHide(id);
-    if (!res.ok) setError(res.data.error ?? "Could not hide it. Try again.");
-    setBusy(null);
-  }
+  const { busy, error, run } = useAction();
+  const hide = (id: string) =>
+    run(id, () => onHide(id), "Could not hide it. Try again.");
 
   return (
     <Section id="questions-heading" title="Questions">

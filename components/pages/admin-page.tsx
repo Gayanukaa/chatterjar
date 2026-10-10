@@ -10,11 +10,13 @@ import { QuizPanel } from "@/components/admin/quiz-panel";
 import { ReviewPanel } from "@/components/admin/review-panel";
 import { RoomPanel } from "@/components/admin/room-panel";
 import { useAdmin } from "@/components/admin/use-admin";
+import { useRoom } from "@/components/room";
 import { roomPath } from "@/lib/api";
 import { POLL_MS } from "@/lib/use-room-state";
 import { useRoomState } from "@/lib/use-room-state";
 
-export function AdminPage({ room: code }: { room: string }) {
+export function AdminPage() {
+  const code = useRoom();
   const { key, data, offline, missing, keyError, signIn, act, download } =
     useAdmin(code);
   const room = useRoomState({ room: code, device: false });

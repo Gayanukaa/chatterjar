@@ -4,8 +4,7 @@ import { Download, EyeOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import { Button, ErrorText, Section } from "./ui";
-
-type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
+import { useAction, type Act } from "./use-admin";
 
 /** Withdraw the poll, download results, or reset the room. */
 export function RoomPanel({
@@ -15,33 +14,32 @@ export function RoomPanel({
   onDone,
 }: {
   act: Act;
-  download: (path: string) => Promise<string | null>;
+  download: (path: string) => Promise<Pick<ApiResult, "ok" | "data">>;
   hasActive: boolean;
   onDone: () => void;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy: tag, error, run: start } = useAction();
+  const busy = tag !== null;
   const [note, setNote] = useState("");
 
   async function run(path: string, done: string) {
-    setBusy(true);
-    setError(null);
     setNote("");
-    const res = await act(path);
-    if (res.ok) setNote(done);
-    else setError(res.data.error ?? "Could not do that. Try again.");
-    setBusy(false);
+    if (await start(path, () => act(path), "Could not do that. Try again."))
+      setNote(done);
     onDone();
   }
 
   async function save(format: "csv" | "json") {
-    setBusy(true);
-    setError(null);
+    const path = `/api/admin/export?format=${format}`;
     setNote("");
-    const failed = await download(`/api/admin/export?format=${format}`);
-    if (failed) setError(failed);
-    else setNote("Results downloaded.");
-    setBusy(false);
+    if (
+      await start(
+        path,
+        () => download(path),
+        "Could not download the results. Try again.",
+      )
+    )
+      setNote("Results downloaded.");
   }
 
   function reset() {
