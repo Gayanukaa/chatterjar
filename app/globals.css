@@ -56,3 +56,10 @@ h3 {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* /screen is built for 1600 x 900; rem follows the viewport to fit. */
+@media (min-width: 1024px) {
+  html:has([data-screen]) {
+    font-size: clamp(9px, min(1vw, 1.78vh), 24px);
+  }
+}

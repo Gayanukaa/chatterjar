@@ -27,6 +27,7 @@ export function ScreenPage({
 
   return (
     <div
+      data-screen
       data-theme={theme}
       className="flex min-h-dvh flex-col bg-paper px-10 pt-10 pb-5 text-ink lg:h-dvh lg:overflow-hidden"
     >

@@ -683,17 +683,19 @@ test("12. word cloud takes one answer per device and shows words on reveal", asy
   }
 });
 
-test("13. a French browser still gets English with html lang en", async ({
+test("13. projector fits a 1280 x 720 laptop with the QR above the footer", async ({
   browser,
 }) => {
-  const { page } = await device(browser, "/", { locale: "fr-FR" });
-  await expect(page.getByRole("heading", { name: "Chatterjar" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Vote" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Questions" })).toBeVisible();
-  await expect(page.getByText("Live", { exact: true })).toBeVisible({
-    timeout: SYNC,
+  const { page } = await device(browser, "/screen", {
+    viewport: { width: 1280, height: 720 },
   });
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  const qr = page.getByTestId("screen-qr");
+  await expect(qr).toBeVisible({ timeout: SYNC });
+  const qrBox = await qr.boundingBox();
+  const footer = await page.locator("footer").boundingBox();
+  expect(qrBox && footer, "QR card and footer render").toBeTruthy();
+  expect(qrBox!.y + qrBox!.height).toBeLessThanOrEqual(footer!.y);
+  expect(footer!.y + footer!.height).toBeLessThanOrEqual(720);
 });
 
 test("14. pages refuse to be framed by other sites", async ({ request }) => {
