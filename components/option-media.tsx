@@ -16,17 +16,7 @@ export function OptionMedia({
   playAudio?: boolean;
 }) {
   if (media.type === "image") {
-    return (
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-line">
-        <Image
-          src={media.src}
-          alt={`Sample ${label}`}
-          fill
-          sizes="(max-width: 640px) 100vw, 50vw"
-          className="object-cover"
-        />
-      </div>
-    );
+    return <ImageSample src={media.src} label={label} />;
   }
   if (media.type === "audio") {
     return playAudio ? (
@@ -41,6 +31,24 @@ export function OptionMedia({
     );
   }
   return <TextFile src={media.src} code={media.type === "code"} />;
+}
+
+function ImageSample({ src, label }: { src: string; label: string }) {
+  // If the optimizer cannot fetch a linked image, load it straight instead.
+  const [direct, setDirect] = useState(false);
+  return (
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-line">
+      <Image
+        src={src}
+        alt={`Sample ${label}`}
+        fill
+        sizes="(max-width: 640px) 100vw, 50vw"
+        unoptimized={direct}
+        onError={() => setDirect(true)}
+        className="object-cover"
+      />
+    </div>
+  );
 }
 
 function TextFile({ src, code }: { src: string; code: boolean }) {
