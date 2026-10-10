@@ -206,8 +206,23 @@ export function validateQuestion(text: unknown): string | null {
 }
 
 const MEDIA_TYPES: MediaType[] = ["image", "code", "text", "audio"];
+// next.config.ts allows the same hosts for images.
+const MEDIA_HOSTS = ["upload.wikimedia.org", "raw.githubusercontent.com"];
 
-/** Valid option list (2 to 4, keys A to D), or null; media must be a site path. */
+/** True for a site path ("/x.png") or an https link on an allowed media host. */
+export function isMediaSrc(src: unknown): src is string {
+  if (typeof src !== "string" || src.length > 500) return false;
+  // "//host/x" is protocol-relative, so it would load from another site.
+  if (src.startsWith("/")) return !src.startsWith("//");
+  try {
+    const url = new URL(src);
+    return url.protocol === "https:" && MEDIA_HOSTS.includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** Valid option list (2 to 4, keys A to D), or null; media src per isMediaSrc. */
 function parseOptions(raw: unknown): Option[] | null {
   if (!Array.isArray(raw) || raw.length < 2 || raw.length > 4) return null;
   const options: Option[] = [];
@@ -216,12 +231,7 @@ function parseOptions(raw: unknown): Option[] | null {
     if (!label || label.length > 200) return null;
     const option: Option = { key: OPTION_KEYS[i], label };
     const m = o?.media;
-    if (
-      m &&
-      MEDIA_TYPES.includes(m.type) &&
-      typeof m.src === "string" &&
-      m.src.startsWith("/")
-    ) {
+    if (m && MEDIA_TYPES.includes(m.type) && isMediaSrc(m.src)) {
       option.media = { type: m.type, src: m.src };
     }
     options.push(option);

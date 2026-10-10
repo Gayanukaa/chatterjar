@@ -83,4 +83,4 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the [cod
 
 ## Licence
 
-The code is MIT licensed (see [LICENSE](LICENSE)). The MIT licence does not cover the media in `public/spot/assets`. [SOURCES.md](SOURCES.md) gives the credits and licences.
+The code is MIT licensed (see [LICENSE](LICENSE)). The Spot the AI pack links media from its sources, which keep their own licences. [SOURCES.md](SOURCES.md) gives the credits and licences.

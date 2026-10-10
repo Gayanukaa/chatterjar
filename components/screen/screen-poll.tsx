@@ -67,10 +67,18 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
 }
 
 function Options({ poll }: { poll: PublicPoll }) {
+  // Two text or code samples share the full height and scroll inside.
+  const tall =
+    poll.options.length === 2 &&
+    poll.options.every(
+      (o) => o.media?.type === "text" || o.media?.type === "code",
+    );
   return (
-    <ul className="grid h-full grid-cols-2 content-start gap-x-8 gap-y-6">
+    <ul
+      className={`grid h-full grid-cols-2 gap-x-8 gap-y-6 ${tall ? "grid-rows-[minmax(0,1fr)]" : "content-start"}`}
+    >
       {poll.options.map((o) => (
-        <li key={o.key} className="min-w-0">
+        <li key={o.key} className="flex min-h-0 min-w-0 flex-col">
           <div className="flex items-start gap-4">
             <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-ink font-heading text-3xl font-bold text-paper">
               {o.key}
@@ -81,7 +89,9 @@ function Options({ poll }: { poll: PublicPoll }) {
           </div>
           {o.media && (
             // Projector type sizes for the shared text and code view.
-            <div className="mt-4 [&_pre]:max-h-[44vh] [&_pre]:p-5 [&_pre]:text-[0.94rem] [&_pre]:leading-snug">
+            <div
+              className={`mt-4 min-h-0 [&_pre]:p-5 [&_pre]:text-[0.94rem] [&_pre]:leading-snug ${tall ? "flex-1 [&_pre]:max-h-full" : "[&_pre]:max-h-[44vh]"}`}
+            >
               <OptionMedia media={o.media} label={o.key} playAudio />
             </div>
           )}
