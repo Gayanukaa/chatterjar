@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { frameHeaders } from "./lib/embed";
 
 const nextConfig: NextConfig = {
   // CLAUDE.md is the agent context; stop next dev from writing AGENTS.md.
@@ -16,7 +15,12 @@ const nextConfig: NextConfig = {
     },
   },
   async headers() {
-    return frameHeaders();
+    // No page is meant to be framed by other sites (clickjacking).
+    const headers = [
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+    ];
+    return [{ source: "/:path*", headers }];
   },
 };
 

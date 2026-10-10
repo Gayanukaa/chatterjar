@@ -26,7 +26,6 @@ export function proxy(req: NextRequest) {
 }
 
 // /api/room is CDN-cached, so it must never carry a Set-Cookie header.
-// Embed pages read shared state only, so they need no device cookie.
 export const config = {
-  matcher: ["/((?!_next/|spot/|favicon.ico|api/room|embed$|r/[^/]+/embed$).*)"],
+  matcher: ["/((?!_next/|spot/|favicon.ico|api/room).*)"],
 };

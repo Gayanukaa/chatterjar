@@ -3,7 +3,6 @@
 import { WifiOff } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { CreatePollForm } from "@/components/admin/create-poll-form";
-import { EmbedPanel } from "@/components/admin/embed-panel";
 import { KeyForm } from "@/components/admin/key-form";
 import { PollList } from "@/components/admin/poll-list";
 import { QuestionsPanel } from "@/components/admin/questions-panel";
@@ -123,7 +122,6 @@ export function AdminPage({ room: code }: { room: string }) {
               return res;
             }}
           />
-          <EmbedPanel room={code} />
         </div>
       </div>
     </main>

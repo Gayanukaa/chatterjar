@@ -698,34 +698,12 @@ test("13. an unsupported ?lang= still renders English with html lang en", async 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
 
-test("14. embed view shows the QR and only embed pages allow framing", async ({
-  browser,
-  request,
-}) => {
-  const embed = await request.get("/embed?show=qr");
-  expect(embed.status()).toBe(200);
-  expect(embed.headers()["content-security-policy"]).toContain(
-    "frame-ancestors *",
-  );
-  expect(embed.headers()["x-frame-options"]).toBeUndefined();
-  // Embed pages read shared state only, so they set no device cookie.
-  expect(embed.headers()["set-cookie"]).toBeUndefined();
-
-  const home = await request.get("/");
-  expect(home.headers()["content-security-policy"]).toContain(
-    "frame-ancestors 'none'",
-  );
-  expect(home.headers()["x-frame-options"]).toBe("DENY");
-
-  // A small slide-sized frame: the QR shows and the page does not scroll.
-  const { page } = await device(browser, "/embed?show=qr", {
-    viewport: { width: 640, height: 360 },
-  });
-  await expect(page.getByTestId("screen-qr")).toBeVisible({ timeout: SYNC });
-  const fits = await page.evaluate(
-    () =>
-      document.documentElement.scrollHeight <= window.innerHeight &&
-      document.documentElement.scrollWidth <= window.innerWidth,
-  );
-  expect(fits).toBe(true);
+test("14. pages refuse to be framed by other sites", async ({ request }) => {
+  for (const path of ["/", "/screen", "/admin"]) {
+    const res = await request.get(path);
+    expect(res.headers()["content-security-policy"], path).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(res.headers()["x-frame-options"], path).toBe("DENY");
+  }
 });
