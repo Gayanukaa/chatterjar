@@ -12,11 +12,9 @@ import {
 // A BASE_URL run targets a deployed app, which uses its real admin key.
 const ADMIN_KEY = process.env.BASE_URL
   ? (process.env.ADMIN_KEY ?? "")
-  : (process.env.E2E_ADMIN_KEY ?? "e2e-key");
+  : process.env.E2E_ADMIN_KEY!;
 // Every question this suite posts starts with this tag, so cleanup finds it.
 const TAG = "E2E";
-// 3 s client poll + 1 s server cache + render: at least 3 polls.
-const SYNC = 10_000;
 
 interface State {
   poll: {
@@ -73,14 +71,15 @@ async function pollTotal(request: APIRequestContext, pollId: string) {
   return poll?.id === pollId ? poll.total : -1;
 }
 
+const sum = (obj: Record<string, number>) =>
+  Object.values(obj).reduce((total, n) => total + Number(n), 0);
+
 async function tallyTotal(request: APIRequestContext) {
-  const { tally } = await getState(request);
-  return Object.values(tally).reduce((sum, n) => sum + Number(n), 0);
+  return sum((await getState(request)).tally);
 }
 
 async function reactionTotal(request: APIRequestContext) {
-  const { reactions } = await getState(request);
-  return Object.values(reactions).reduce((sum, n) => sum + Number(n), 0);
+  return sum((await getState(request)).reactions);
 }
 
 /** Admin state of the main room: settings and questions that wait for review. */
@@ -128,6 +127,22 @@ async function openTab(page: Page, name: "Vote" | "Questions" | "Quiz") {
   await page.getByRole("tab", { name }).click();
 }
 
+/** Taps Vote A or B and waits for the confirmation. */
+async function vote(page: Page, key: "A" | "B") {
+  await page.getByRole("button", { name: `Vote ${key}` }).click();
+  await expect(page.getByText(`You voted ${key}`)).toBeVisible();
+}
+
+/** Sends a question from the Questions tab and waits until the wall shows it. */
+async function ask(page: Page, text: string) {
+  await openTab(page, "Questions");
+  await page.getByLabel("Your question").fill(text);
+  await page.getByRole("button", { name: "Send question" }).click();
+  await expect(
+    page.getByTestId("question").filter({ hasText: text }),
+  ).toBeVisible();
+}
+
 /** True when the page offers no usable vote button. */
 async function voteLocked(page: Page) {
   for (const name of ["Vote A", "Vote B"]) {
@@ -170,10 +185,7 @@ test("1. second vote from one device is rejected, another device counts", async 
 
   const one = await device(browser);
   await openTab(one.page, "Vote");
-  const voteA = one.page.getByRole("button", { name: "Vote A" });
-  await expect(voteA).toBeVisible({ timeout: SYNC });
-  await voteA.click();
-  await expect(one.page.getByText("You voted A")).toBeVisible();
+  await vote(one.page, "A");
   await expect.poll(() => voteLocked(one.page)).toBe(true);
 
   const again = await one.page.request.post("/api/vote", {
@@ -185,17 +197,12 @@ test("1. second vote from one device is rejected, another device counts", async 
   const two = await device(browser);
   // -1 means another poll is active; wait out the 1 s state cache.
   await expect
-    .poll(() => pollTotal(two.page.request, pollId), { timeout: SYNC })
+    .poll(() => pollTotal(two.page.request, pollId))
     .toBeGreaterThanOrEqual(1);
   const before = await pollTotal(two.page.request, pollId);
   await openTab(two.page, "Vote");
-  const voteB = two.page.getByRole("button", { name: "Vote B" });
-  await expect(voteB).toBeVisible({ timeout: SYNC });
-  await voteB.click();
-  await expect(two.page.getByText("You voted B")).toBeVisible();
-  await expect
-    .poll(() => pollTotal(two.page.request, pollId), { timeout: SYNC })
-    .toBe(before + 1);
+  await vote(two.page, "B");
+  await expect.poll(() => pollTotal(two.page.request, pollId)).toBe(before + 1);
 });
 
 test("2. revealed poll shows bars and the correct option on / and /screen", async ({
@@ -211,26 +218,20 @@ test("2. revealed poll shows bars and the correct option on / and /screen", asyn
   expect(vote.ok(), `vote: ${vote.status()}`).toBe(true);
   // The answer must stay server-side until the reveal.
   await expect
-    .poll(async () => (await getState(request)).poll?.id, { timeout: SYNC })
+    .poll(async () => (await getState(request)).poll?.id)
     .toBe(pollId);
   expect((await getState(request)).poll?.correct).toBeUndefined();
 
   const screen = await device(browser, "/screen");
-  await expect(screen.page.getByTestId("screen-poll")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(screen.page.getByTestId("screen-poll")).toBeVisible();
 
   await admin(request, "/api/admin/status", { id: pollId, status: "revealed" });
 
   await openTab(phone.page, "Vote");
-  await expect(phone.page.getByTestId("poll-results")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(phone.page.getByTestId("poll-results")).toBeVisible();
   await expect(phone.page.getByText("Correct answer: B").first()).toBeVisible();
 
-  await expect(screen.page.getByTestId("screen-results")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(screen.page.getByTestId("screen-results")).toBeVisible();
   await expect(
     screen.page.getByText("Correct answer: B").first(),
   ).toBeVisible();
@@ -246,18 +247,15 @@ test("3. hidden question disappears from both devices", async ({
   const two = await device(browser);
   const screen = await two.context.newPage();
   await screen.goto("/screen");
-  await openTab(one.page, "Questions");
   await openTab(two.page, "Questions");
-
-  await one.page.getByLabel("Your question").fill(text);
-  await one.page.getByRole("button", { name: "Send question" }).click();
+  await ask(one.page, text);
 
   const views = [
     one.page.getByTestId("question").filter({ hasText: text }),
     two.page.getByTestId("question").filter({ hasText: text }),
     screen.getByTestId("screen-question").filter({ hasText: text }),
   ];
-  for (const view of views) await expect(view).toBeVisible({ timeout: SYNC });
+  for (const view of views) await expect(view).toBeVisible();
 
   const posted = (await getState(request)).questions.find(
     (q) => q.text === text,
@@ -266,8 +264,7 @@ test("3. hidden question disappears from both devices", async ({
   const start = Date.now();
   await admin(request, "/api/admin/hide", { id: posted!.id });
 
-  for (const view of views)
-    await expect(view).toHaveCount(0, { timeout: SYNC });
+  for (const view of views) await expect(view).toHaveCount(0);
   // The target is 3 s; the report shows the measured time for review.
   test.info().annotations.push({
     type: "hide-latency-ms",
@@ -317,15 +314,13 @@ test("5. quiz shows a persona and the tally rises by one", async ({
 
   await openTab(page, "Quiz");
   const sets = page.locator("fieldset").filter({ visible: true });
-  await expect(sets).toHaveCount(5, { timeout: SYNC });
+  await expect(sets).toHaveCount(5);
   for (let i = 0; i < 5; i++) await pickFirst(sets.nth(i));
   await page.getByRole("button", { name: "See my persona" }).click();
 
   await expect(page.getByTestId("quiz-result")).toContainText("You are a");
   await expect(page.getByTestId("quiz-tally")).toBeVisible();
-  await expect
-    .poll(() => tallyTotal(page.request), { timeout: SYNC })
-    .toBe(before + 1);
+  await expect.poll(() => tallyTotal(page.request)).toBe(before + 1);
 });
 
 test("6. at 360 px nothing overflows and buttons are 48 px or taller", async ({
@@ -352,7 +347,7 @@ test("6. at 360 px nothing overflows and buttons are 48 px or taller", async ({
 
   for (const [tab, ready] of tabs) {
     await openTab(page, tab);
-    await expect(ready).toBeVisible({ timeout: SYNC });
+    await expect(ready).toBeVisible();
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
@@ -392,60 +387,36 @@ test("7. admin can withdraw the poll and reset the room", async ({
 
   const student = await device(browser);
   await openTab(student.page, "Vote");
-  await student.page
-    .getByRole("button", { name: "Vote A" })
-    .click({ timeout: SYNC });
-  await expect(student.page.getByText("You voted A")).toBeVisible();
-  await openTab(student.page, "Questions");
-  await student.page.getByLabel("Your question").fill(text);
-  await student.page.getByRole("button", { name: "Send question" }).click();
-  await expect(
-    student.page.getByTestId("question").filter({ hasText: text }),
-  ).toBeVisible({
-    timeout: SYNC,
-  });
+  await vote(student.page, "A");
+  await ask(student.page, text);
 
   const lecturer = await device(browser, `/admin#key=${ADMIN_KEY}`);
   const withdraw = lecturer.page.getByRole("button", { name: "Withdraw poll" });
-  await expect(withdraw).toBeEnabled({ timeout: SYNC });
+  await expect(withdraw).toBeEnabled();
   await withdraw.click();
   await expect(lecturer.page.getByText("Poll withdrawn.")).toBeVisible();
   await openTab(student.page, "Vote");
-  await expect(student.page.getByText("No poll yet")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(student.page.getByText("No poll yet")).toBeVisible();
 
   lecturer.page.once("dialog", (d) => d.accept());
   await lecturer.page.getByRole("button", { name: "Reset room" }).click();
-  await expect(lecturer.page.getByText("Room reset.")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(lecturer.page.getByText("Room reset.")).toBeVisible();
 
   await expect
-    .poll(
-      async () => {
-        const s = await getState(student.page.request);
-        const tally = Object.values(s.tally).reduce(
-          (sum, n) => sum + Number(n),
-          0,
-        );
-        return {
-          poll: s.poll,
-          mine: s.questions.some((q) => q.text === text),
-          tally,
-        };
-      },
-      { timeout: SYNC },
-    )
+    .poll(async () => {
+      const s = await getState(student.page.request);
+      return {
+        poll: s.poll,
+        mine: s.questions.some((q) => q.text === text),
+        tally: sum(s.tally),
+      };
+    })
     .toEqual({ poll: null, mine: false, tally: 0 });
 
   // Voters were cleared, so the same device can vote again after reopening.
   await admin(request, "/api/admin/status", { id: pollId, status: "open" });
   await openTab(student.page, "Vote");
-  await student.page
-    .getByRole("button", { name: "Vote B" })
-    .click({ timeout: SYNC });
-  await expect(student.page.getByText("You voted B")).toBeVisible();
+  await vote(student.page, "B");
 });
 
 test("8. invite-only rooms keep data and admin keys separate", async ({
@@ -488,17 +459,9 @@ test("8. invite-only rooms keep data and admin keys separate", async ({
   // A phone on /r/<code> votes and asks; the main room sees none of it.
   const phone = await device(browser, `/r/${code}`);
   await openTab(phone.page, "Vote");
-  await phone.page
-    .getByRole("button", { name: "Vote A" })
-    .click({ timeout: SYNC });
-  await expect(phone.page.getByText("You voted A")).toBeVisible();
+  await vote(phone.page, "A");
   const text = `${TAG} room question ${Date.now()}`;
-  await openTab(phone.page, "Questions");
-  await phone.page.getByLabel("Your question").fill(text);
-  await phone.page.getByRole("button", { name: "Send question" }).click();
-  await expect(
-    phone.page.getByTestId("question").filter({ hasText: text }),
-  ).toBeVisible({ timeout: SYNC });
+  await ask(phone.page, text);
   const main = await getState(request);
   expect(main.poll?.id).not.toBe(pollId);
   expect(main.questions.some((q) => q.text === text)).toBe(false);
@@ -512,9 +475,7 @@ test("8. invite-only rooms keep data and admin keys separate", async ({
   await phone.page.reload();
   await expect(
     phone.page.getByRole("tabpanel").getByText("This room does not exist"),
-  ).toBeVisible({
-    timeout: SYNC,
-  });
+  ).toBeVisible();
 });
 
 test("9. admin exports results and the projector has a dark theme", async ({
@@ -552,7 +513,7 @@ test("9. admin exports results and the projector has a dark theme", async ({
 
   const screen = await device(browser, "/screen?theme=dark");
   const root = screen.page.locator("[data-theme]").first();
-  await expect(root).toHaveAttribute("data-theme", "dark", { timeout: SYNC });
+  await expect(root).toHaveAttribute("data-theme", "dark");
   await screen.page.getByRole("button", { name: "Light theme" }).click();
   await expect(root).toHaveAttribute("data-theme", "light");
 });
@@ -561,9 +522,7 @@ test("10. reactions add to the totals and the 11th in 10 s is rejected", async (
   browser,
 }) => {
   const { page } = await device(browser);
-  await expect(page.getByRole("button", { name: "Love it" })).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(page.getByRole("button", { name: "Love it" })).toBeVisible();
   const before = await reactionTotal(page.request);
 
   // All 11 go out back to back, well inside the 10 s window.
@@ -575,15 +534,11 @@ test("10. reactions add to the totals and the 11th in 10 s is rejected", async (
     expect(res.status(), `reaction ${i}`).toBe(i <= 10 ? 200 : 429);
     if (i > 10) expect((await res.json()).error).toBe("Slow down a little.");
   }
-  await expect
-    .poll(() => reactionTotal(page.request), { timeout: SYNC })
-    .toBe(before + 10);
+  await expect.poll(() => reactionTotal(page.request)).toBe(before + 10);
 
   const screen = await page.context().newPage();
   await screen.goto("/screen");
-  await expect(screen.getByTestId("screen-reactions")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(screen.getByTestId("screen-reactions")).toBeVisible();
 });
 
 test("11. with review on, a question shows only after the admin approves it", async ({
@@ -613,10 +568,10 @@ test("11. with review on, a question shows only after the admin approves it", as
     expect(await shown()).toBe(false);
 
     await admin(request, "/api/admin/approve", { id: waiting!.id });
-    await expect.poll(shown, { timeout: SYNC }).toBe(true);
+    await expect.poll(shown).toBe(true);
     await expect(
       page.getByTestId("question").filter({ hasText: text }),
-    ).toBeVisible({ timeout: SYNC });
+    ).toBeVisible();
     const queue = (await adminState(request)).pending;
     expect(queue.some((q) => q.text === text)).toBe(false);
   } finally {
@@ -644,13 +599,11 @@ test("12. word cloud takes one answer per device and shows words on reveal", asy
   for (const [i, { page }] of [one, two].entries()) {
     await openTab(page, "Vote");
     const box = page.getByLabel("Your answer");
-    await expect(box).toBeVisible({ timeout: SYNC });
+    await expect(box).toBeVisible();
     // Upper case and extra spaces check the server-side normalization.
     await box.fill(`  ${words[i].toUpperCase().replace(" ", "   ")} `);
     await page.getByRole("button", { name: "Send answer" }).click();
-    await expect(page.getByText(`You answered ${words[i]}`)).toBeVisible({
-      timeout: SYNC,
-    });
+    await expect(page.getByText(`You answered ${words[i]}`)).toBeVisible();
   }
 
   const again = await one.page.request.post("/api/vote", {
@@ -664,22 +617,18 @@ test("12. word cloud takes one answer per device and shows words on reveal", asy
   expect(bad.status()).toBe(400);
 
   // Before the reveal only the answer count leaves the server.
-  await expect
-    .poll(() => pollTotal(request, poll.id), { timeout: SYNC })
-    .toBe(2);
+  await expect.poll(() => pollTotal(request, poll.id)).toBe(2);
   expect((await getState(request)).poll?.results).toBeUndefined();
 
   const screen = await device(browser, "/screen");
-  await expect(screen.page.getByTestId("screen-poll")).toBeVisible({
-    timeout: SYNC,
-  });
+  await expect(screen.page.getByTestId("screen-poll")).toBeVisible();
   await admin(request, "/api/admin/status", {
     id: poll.id,
     status: "revealed",
   });
   const cloud = screen.page.getByTestId("word-cloud");
   for (const word of words) {
-    await expect(cloud.getByText(word)).toBeVisible({ timeout: SYNC });
+    await expect(cloud.getByText(word)).toBeVisible();
   }
 });
 
@@ -690,7 +639,7 @@ test("13. projector fits a 1280 x 720 laptop with the QR above the footer", asyn
     viewport: { width: 1280, height: 720 },
   });
   const qr = page.getByTestId("screen-qr");
-  await expect(qr).toBeVisible({ timeout: SYNC });
+  await expect(qr).toBeVisible();
   const qrBox = await qr.boundingBox();
   const footer = await page.locator("footer").boundingBox();
   expect(qrBox && footer, "QR card and footer render").toBeTruthy();
