@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { post, withRoom } from "@/lib/api";
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
@@ -43,7 +42,6 @@ function saveKey(room: string, key: string | null) {
 
 /** Admin key (from #key= or sessionStorage) and admin state every POLL_MS. */
 export function useAdmin(room = "main") {
-  const t = useT();
   // undefined: not read yet; null: no key, show the key form.
   const [key, setKey] = useState<string | null | undefined>(undefined);
   const [data, setData] = useState<AdminState | null>(null);
@@ -55,8 +53,8 @@ export function useAdmin(room = "main") {
     saveKey(room, null);
     setKey(null);
     setData(null);
-    setKeyError(t("admin.key.wrong"));
-  }, [room, t]);
+    setKeyError("This admin key is wrong. Enter the correct key.");
+  }, [room]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -134,9 +132,9 @@ export function useAdmin(room = "main") {
         });
         if (res.status === 401) {
           reject();
-          return t("admin.key.wrongShort");
+          return "This admin key is wrong.";
         }
-        if (!res.ok) return t("admin.downloadFailed");
+        if (!res.ok) return "Could not download the results. Try again.";
         const name = /filename="([^"]+)"/.exec(
           res.headers.get("content-disposition") ?? "",
         )?.[1];
@@ -149,10 +147,10 @@ export function useAdmin(room = "main") {
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
         return null;
       } catch {
-        return t("common.noConnection");
+        return "No connection. Try again.";
       }
     },
-    [key, reject, room, t],
+    [key, reject, room],
   );
 
   return { key, data, offline, missing, keyError, signIn, act, download };

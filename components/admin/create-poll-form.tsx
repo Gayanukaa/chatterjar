@@ -4,12 +4,12 @@ import { Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { ApiResult } from "@/lib/api";
 import {
+  KIND_LABEL,
   OPTION_KEYS,
   POLL_KINDS,
   type MediaType,
   type PollKind,
 } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, FIELD, Section } from "./ui";
 
 type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
@@ -20,11 +20,17 @@ interface Row {
 }
 
 const MEDIA = ["", "image", "code", "text", "audio"] as const;
+const MEDIA_LABEL: Record<(typeof MEDIA)[number], string> = {
+  "": "None",
+  image: "Image",
+  code: "Code",
+  text: "Text",
+  audio: "Audio",
+};
 const emptyRow = (): Row => ({ label: "", type: "", src: "" });
 
 /** Form to create a poll: choice (2 to 4 options) or word cloud. */
 export function CreatePollForm({ act }: { act: Act }) {
-  const t = useT();
   const [question, setQuestion] = useState("");
   const [kind, setKind] = useState<PollKind>("choice");
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow()]);
@@ -48,7 +54,9 @@ export function CreatePollForm({ act }: { act: Act }) {
     const choice = kind === "choice";
     const bad = rows.findIndex((r) => r.type && !r.src.trim().startsWith("/"));
     if (choice && bad >= 0) {
-      setError(t("admin.create.badMedia", { key: OPTION_KEYS[bad] }));
+      setError(
+        `Option ${OPTION_KEYS[bad]}: add a media path that starts with /.`,
+      );
       return;
     }
     setBusy(true);
@@ -68,24 +76,24 @@ export function CreatePollForm({ act }: { act: Act }) {
     );
     setBusy(false);
     if (!res.ok) {
-      setError(res.data.error ?? t("admin.create.failed"));
+      setError(res.data.error ?? "Could not create the poll. Try again.");
       return;
     }
     setQuestion("");
     setRows([emptyRow(), emptyRow()]);
     setCorrect("");
-    setDone(t("admin.create.done"));
+    setDone("Poll created. It stays closed until you open it.");
   }
 
   return (
-    <Section id="create-heading" title={t("admin.create.heading")}>
+    <Section id="create-heading" title="Create poll">
       <form
         onSubmit={submit}
         className="grid gap-4 rounded-xl border border-line bg-white p-4"
       >
         <div className="grid gap-1.5">
           <label htmlFor="poll-question" className="font-semibold">
-            {t("admin.create.question")}
+            Question
           </label>
           <textarea
             id="poll-question"
@@ -100,7 +108,7 @@ export function CreatePollForm({ act }: { act: Act }) {
 
         <div className="grid gap-1.5">
           <label htmlFor="poll-kind" className="font-semibold">
-            {t("admin.create.type")}
+            Poll type
           </label>
           <select
             id="poll-kind"
@@ -110,12 +118,15 @@ export function CreatePollForm({ act }: { act: Act }) {
           >
             {POLL_KINDS.map((k) => (
               <option key={k} value={k}>
-                {t(`common.pollKind.${k}`)}
+                {KIND_LABEL[k]}
               </option>
             ))}
           </select>
           {kind === "words" && (
-            <p className="text-sm text-muted">{t("admin.create.wordsHint")}</p>
+            <p className="text-sm text-muted">
+              Phones send one short answer each. The screen shows a word cloud
+              after you reveal.
+            </p>
           )}
         </div>
 
@@ -128,11 +139,11 @@ export function CreatePollForm({ act }: { act: Act }) {
                 className="grid gap-2 border-t border-line pt-4 sm:grid-cols-[minmax(0,1fr)_8.5rem]"
               >
                 <legend className="float-left mb-2 w-full font-semibold sm:col-span-2">
-                  {t("admin.create.option", { key })}
+                  Option {key}
                 </legend>
                 <div className="grid gap-1.5 sm:col-span-2">
                   <label htmlFor={`opt-${key}-label`} className="text-sm">
-                    {t("admin.create.text")}
+                    Text
                   </label>
                   <input
                     id={`opt-${key}-label`}
@@ -145,7 +156,7 @@ export function CreatePollForm({ act }: { act: Act }) {
                 </div>
                 <div className="grid gap-1.5 sm:order-2">
                   <label htmlFor={`opt-${key}-type`} className="text-sm">
-                    {t("admin.create.media")}
+                    Media
                   </label>
                   <select
                     id={`opt-${key}-type`}
@@ -157,14 +168,14 @@ export function CreatePollForm({ act }: { act: Act }) {
                   >
                     {MEDIA.map((m) => (
                       <option key={m} value={m}>
-                        {t(`admin.create.mediaType.${m || "none"}`)}
+                        {MEDIA_LABEL[m]}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="grid gap-1.5 sm:order-1">
                   <label htmlFor={`opt-${key}-src`} className="text-sm">
-                    {t("admin.create.mediaPath")}
+                    Media path
                   </label>
                   <input
                     id={`opt-${key}-src`}
@@ -189,17 +200,17 @@ export function CreatePollForm({ act }: { act: Act }) {
                 disabled={rows.length >= 4}
               >
                 <Plus aria-hidden />
-                {t("admin.create.addOption")}
+                Add option
               </Button>
               <Button onClick={removeRow} disabled={rows.length <= 2}>
                 <Minus aria-hidden />
-                {t("admin.create.removeOption")}
+                Remove option
               </Button>
             </div>
 
             <div className="grid gap-1.5 border-t border-line pt-4">
               <label htmlFor="poll-correct" className="font-semibold">
-                {t("admin.create.correct")}
+                Correct option
               </label>
               <select
                 id="poll-correct"
@@ -207,10 +218,10 @@ export function CreatePollForm({ act }: { act: Act }) {
                 onChange={(e) => setCorrect(e.target.value)}
                 className={FIELD}
               >
-                <option value="">{t("admin.create.noCorrect")}</option>
+                <option value="">No correct option</option>
                 {rows.map((_, i) => (
                   <option key={OPTION_KEYS[i]} value={OPTION_KEYS[i]}>
-                    {t("admin.create.option", { key: OPTION_KEYS[i] })}
+                    Option {OPTION_KEYS[i]}
                   </option>
                 ))}
               </select>
@@ -226,7 +237,7 @@ export function CreatePollForm({ act }: { act: Act }) {
           {done}
         </p>
         <Button type="submit" variant="primary" disabled={busy}>
-          {busy ? t("admin.create.creating") : t("admin.create.submit")}
+          {busy ? "Creating poll..." : "Create poll"}
         </Button>
       </form>
     </Section>

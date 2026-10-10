@@ -6,7 +6,6 @@ import quiz from "@/data/quiz.json";
 import { post, withRoom } from "@/lib/api";
 import { useRoom } from "@/components/room";
 import { PERSONAS, isPersona, type Persona } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { ErrorNote, errorText } from "./error-note";
 
 const QUIZ = quiz.questions as {
@@ -25,7 +24,6 @@ export function QuizPanel({
   refresh: () => Promise<void>;
 }) {
   const room = useRoom();
-  const t = useT();
   const [answers, setAnswers] = useState<(Persona | null)[]>(() =>
     QUIZ.map(() => null),
   );
@@ -46,7 +44,7 @@ export function QuizPanel({
     if (res.ok && isPersona(res.data.persona)) await refresh();
     setSending(false);
     if (!res.ok || !isPersona(res.data.persona)) {
-      setError(errorText(res.data, t("student.quiz.failed")));
+      setError(errorText(res.data, "Your answers did not go through."));
     }
   }
 
@@ -58,11 +56,11 @@ export function QuizPanel({
           className="rounded-2xl bg-violet/[0.07] px-4 py-5"
         >
           <p className="font-heading text-3xl leading-tight font-bold text-violet">
-            {t(`student.quiz.result.${/^[aeiou]/i.test(shown) ? "an" : "a"}`, {
-              persona: shown,
-            })}
+            {`You are ${/^[aeiou]/i.test(shown) ? "an" : "a"} ${shown}`}
           </p>
-          <p className="mt-2 text-muted">{t("student.quiz.inCount")}</p>
+          <p className="mt-2 text-muted">
+            Your answer is in the room count below.
+          </p>
         </section>
         <section
           data-testid="quiz-tally"
@@ -70,7 +68,7 @@ export function QuizPanel({
           className="space-y-3"
         >
           <h2 id="tally-heading" className="text-xl font-semibold">
-            {t("student.quiz.tallyHeading")}
+            The room so far
           </h2>
           <Bars
             items={PERSONAS.map((p) => ({
@@ -88,14 +86,13 @@ export function QuizPanel({
   return (
     <form onSubmit={submit} className="space-y-6">
       <p className="text-muted">
-        {t("student.quiz.intro", { total: QUIZ.length })}
+        Answer {QUIZ.length} short questions. Pick the answer that fits you
+        best.
       </p>
       {QUIZ.map((q, i) => (
         <fieldset key={q.question} className="space-y-2">
           <legend className="mb-2 font-heading text-lg leading-snug font-semibold">
-            <span className="text-muted">
-              {t("student.quiz.progress", { n: i + 1, total: QUIZ.length })}
-            </span>
+            <span className="text-muted">{`${i + 1}/${QUIZ.length} `}</span>
             {q.question}
           </legend>
           {PERSONAS.map((p) => (
@@ -124,14 +121,11 @@ export function QuizPanel({
         disabled={!complete || sending}
         className="flex min-h-12 w-full items-center justify-center rounded-xl bg-violet px-4 font-semibold text-white transition-colors hover:bg-violet/90 active:bg-ink disabled:bg-line disabled:text-muted"
       >
-        {sending ? t("student.quiz.checking") : t("student.quiz.submit")}
+        {sending ? "Checking..." : "See my persona"}
       </button>
       {!complete && (
         <p className="-mt-3 text-center text-sm text-muted">
-          {t("student.quiz.answered", {
-            n: answers.filter(Boolean).length,
-            total: QUIZ.length,
-          })}
+          {answers.filter(Boolean).length} of {QUIZ.length} answered
         </p>
       )}
     </form>

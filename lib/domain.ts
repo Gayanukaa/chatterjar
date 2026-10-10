@@ -75,7 +75,7 @@ export interface RoomState {
   me: DeviceState;
 }
 
-// Labels live in the i18n catalog under common.reactions.
+// Labels live in REACTION_LABELS in components/reaction-icon.tsx.
 export const REACTION_TYPES = ["applause", "love", "idea", "confused"] as const;
 export type Reaction = (typeof REACTION_TYPES)[number];
 export const REACTIONS_PER_WINDOW = 10;
@@ -88,6 +88,10 @@ export const OPTION_KEYS = ["A", "B", "C", "D"];
 export const VOTE_WEIGHT = 1e13;
 export const RID_PATTERN = /^[0-9a-f-]{36}$/i;
 export const POLL_KINDS: PollKind[] = ["choice", "words"];
+export const KIND_LABEL: Record<PollKind, string> = {
+  choice: "Multiple choice",
+  words: "Word cloud",
+};
 export const MAX_WORD = 24;
 export const TOP_WORDS = 40;
 // \p{M} keeps Sinhala and Tamil vowel signs; ZWJ/ZWNJ form Sinhala conjuncts.

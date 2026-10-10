@@ -4,7 +4,6 @@ import { ArrowBigUp, EyeOff } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
 import type { Question } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, Section } from "./ui";
 
 /** Visible student questions with upvotes and a Hide button for each. */
@@ -15,7 +14,6 @@ export function QuestionsPanel({
   questions: Question[] | null;
   onHide: (id: string) => Promise<ApiResult>;
 }) {
-  const t = useT();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,22 +21,22 @@ export function QuestionsPanel({
     setBusy(id);
     setError(null);
     const res = await onHide(id);
-    if (!res.ok) setError(res.data.error ?? t("admin.questions.failed"));
+    if (!res.ok) setError(res.data.error ?? "Could not hide it. Try again.");
     setBusy(null);
   }
 
   return (
-    <Section id="questions-heading" title={t("admin.questions.heading")}>
+    <Section id="questions-heading" title="Questions">
       {error && (
         <div className="mb-3">
           <ErrorText>{error}</ErrorText>
         </div>
       )}
       {questions === null ? (
-        <p className="text-muted">{t("admin.questions.loading")}</p>
+        <p className="text-muted">Loading questions...</p>
       ) : questions.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-4 py-6 text-muted">
-          {t("admin.questions.empty")}
+          No questions yet. Student questions show here.
         </p>
       ) : (
         <ul className="divide-y divide-line rounded-xl border border-line bg-white">
@@ -48,7 +46,7 @@ export function QuestionsPanel({
                 <ArrowBigUp aria-hidden className="size-5" />
                 <span className="font-semibold tabular-nums">{q.votes}</span>
                 <span className="sr-only">
-                  {t("common.units.upvote", { count: q.votes })}
+                  {q.votes === 1 ? "upvote" : "upvotes"}
                 </span>
               </span>
               <p className="min-w-0 flex-1 wrap-break-word">{q.text}</p>
@@ -58,7 +56,7 @@ export function QuestionsPanel({
                 disabled={busy !== null}
               >
                 <EyeOff aria-hidden />
-                {t("admin.questions.hide")}
+                Hide
               </Button>
             </li>
           ))}

@@ -11,8 +11,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
-import { kindOf, topWords, type Option, type PollStatus } from "@/lib/domain";
-import { useT } from "@/lib/i18n/react";
+import {
+  KIND_LABEL,
+  kindOf,
+  topWords,
+  type Option,
+  type PollStatus,
+} from "@/lib/domain";
 import { Button, ErrorText, FIELD, Section } from "./ui";
 import type { AdminPoll, PackSummary } from "./use-admin";
 
@@ -23,10 +28,15 @@ const CHIP: Record<PollStatus, string> = {
   closed: "bg-ink/[0.06] text-muted",
   revealed: "bg-violet/10 text-violet",
 };
+const CHIP_LABEL: Record<PollStatus, string> = {
+  open: "Open",
+  closed: "Closed",
+  revealed: "Revealed",
+};
 const ACTIONS = [
-  { status: "open", Icon: Play },
-  { status: "closed", Icon: Lock },
-  { status: "revealed", Icon: Eye },
+  { status: "open", label: "Open", Icon: Play },
+  { status: "closed", label: "Close", Icon: Lock },
+  { status: "revealed", label: "Reveal", Icon: Eye },
 ] as const;
 
 const fileName = (src: string) => src.split("/").pop() ?? src;
@@ -43,7 +53,6 @@ export function PollList({
   packs: PackSummary[];
   act: Act;
 }) {
-  const t = useT();
   const [pack, setPack] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,18 +63,18 @@ export function PollList({
     setBusy(tag);
     setError(null);
     const res = await act(path, payload);
-    if (!res.ok) setError(res.data.error ?? t("admin.polls.failed"));
+    if (!res.ok) setError(res.data.error ?? "The action failed. Try again.");
     setBusy(null);
   }
 
   return (
     <Section
       id="polls-heading"
-      title={t("admin.polls.heading")}
+      title="Polls"
       action={
         <div className="flex flex-wrap items-center gap-2">
           <label htmlFor="pack-select" className="sr-only">
-            {t("admin.polls.packLabel")}
+            Content pack
           </label>
           <select
             id="pack-select"
@@ -73,13 +82,12 @@ export function PollList({
             onChange={(e) => setPack(e.target.value)}
             className={`${FIELD} w-auto`}
           >
-            <option value="">{t("admin.polls.choosePack")}</option>
+            <option value="">Choose a content pack</option>
             {packs.map((p) => (
               <option key={p.id} value={p.id}>
-                {t("admin.polls.packOption", {
-                  title: p.title,
-                  count: p.count,
-                })}
+                {p.count === 1
+                  ? `${p.title} (${p.count} poll)`
+                  : `${p.title} (${p.count} polls)`}
               </option>
             ))}
           </select>
@@ -88,7 +96,7 @@ export function PollList({
             disabled={busy !== null || !pack}
           >
             <ListPlus aria-hidden />
-            {t("admin.polls.loadPack")}
+            Load pack
           </Button>
         </div>
       }
@@ -99,10 +107,10 @@ export function PollList({
         </div>
       )}
       {polls === null ? (
-        <p className="text-muted">{t("admin.polls.loading")}</p>
+        <p className="text-muted">Loading polls...</p>
       ) : polls.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line px-4 py-6 text-muted">
-          {t("admin.polls.empty")}
+          No polls yet. Load a content pack or create a poll.
         </p>
       ) : (
         <ol className="grid gap-3">
@@ -128,19 +136,19 @@ export function PollList({
                   <span
                     className={`rounded-full px-2.5 py-0.5 font-semibold ${CHIP[poll.status]}`}
                   >
-                    {t(`admin.polls.chip.${poll.status}`)}
+                    {CHIP_LABEL[poll.status]}
                   </span>
                   <span className="rounded-full bg-ink/[0.06] px-2.5 py-0.5 font-semibold text-ink">
-                    {t(`common.pollKind.${kind}`)}
+                    {KIND_LABEL[kind]}
                   </span>
                   {active && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue/10 px-2.5 py-0.5 font-semibold text-blue">
                       <Radio aria-hidden className="size-3.5" />
-                      {t("admin.polls.active")}
+                      Active on phones and screen
                     </span>
                   )}
                   <span className="ml-auto tabular-nums text-muted">
-                    {total} {t(`common.units.${unit}`, { count: total })}
+                    {total} {total === 1 ? unit : `${unit}s`}
                   </span>
                 </div>
                 <h3 className="mt-2 font-heading text-lg leading-snug font-semibold text-pretty">
@@ -148,12 +156,10 @@ export function PollList({
                 </h3>
                 {kind === "words" &&
                   (words.length === 0 ? (
-                    <p className="mt-3 text-sm text-muted">
-                      {t("common.noAnswers")}
-                    </p>
+                    <p className="mt-3 text-sm text-muted">No answers yet.</p>
                   ) : (
                     <ul
-                      aria-label={t("admin.polls.topAnswers")}
+                      aria-label="Top answers"
                       className="mt-3 flex flex-wrap gap-1.5"
                     >
                       {words.map(([w, n]) => (
@@ -198,7 +204,7 @@ export function PollList({
                               {correct && (
                                 <span className="ml-1.5 inline-flex items-center gap-1 align-[-2px] font-semibold text-green">
                                   <CircleCheck aria-hidden className="size-4" />
-                                  {t("admin.polls.correct")}
+                                  Correct
                                 </span>
                               )}
                             </span>
@@ -220,9 +226,7 @@ export function PollList({
                   </ul>
                 )}
                 {kind !== "choice" ? null : !poll.correct ? (
-                  <p className="mt-3 text-sm text-muted">
-                    {t("admin.polls.noCorrect")}
-                  </p>
+                  <p className="mt-3 text-sm text-muted">No correct option.</p>
                 ) : (
                   poll.status !== "revealed" && (
                     <button
@@ -236,20 +240,16 @@ export function PollList({
                       ) : (
                         <Eye aria-hidden className="size-4" />
                       )}
-                      {peek === poll.id
-                        ? t("admin.polls.hideAnswer")
-                        : t("admin.polls.showAnswer")}
+                      {peek === poll.id ? "Hide answer" : "Show answer"}
                     </button>
                   )
                 )}
                 <div
                   role="group"
-                  aria-label={t("admin.polls.actionsFor", {
-                    question: poll.question,
-                  })}
+                  aria-label={`Actions for: ${poll.question}`}
                   className="mt-4 grid grid-cols-3 gap-2"
                 >
-                  {ACTIONS.map(({ status, Icon }) => {
+                  {ACTIONS.map(({ status, label, Icon }) => {
                     const tag = `${poll.id}:${status}`;
                     return (
                       <Button
@@ -264,7 +264,7 @@ export function PollList({
                         }
                       >
                         <Icon aria-hidden />
-                        {t(`admin.polls.actions.${status}`)}
+                        {label}
                       </Button>
                     );
                   })}
