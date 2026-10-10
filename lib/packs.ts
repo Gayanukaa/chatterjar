@@ -2,7 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { isPollKind, optionsFor, type Poll } from "./domain";
 
-export interface Pack {
+interface Pack {
   id: string;
   title: string;
   description: string;

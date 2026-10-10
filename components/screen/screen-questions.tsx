@@ -1,5 +1,3 @@
-"use client";
-
 import type { Question } from "@/lib/domain";
 import styles from "./screen.module.css";
 

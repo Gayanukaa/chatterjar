@@ -43,7 +43,7 @@ const BAD = new RegExp(
 );
 const LINK = /\bhttps?:\/\/|\bwww\./i;
 
-export type ReviewReason = "language" | "link";
+type ReviewReason = "language" | "link";
 
 /** Why a question needs the host's review, or null when it looks clean. */
 export function needsReview(text: string): ReviewReason | null {

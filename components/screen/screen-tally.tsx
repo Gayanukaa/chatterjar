@@ -1,5 +1,3 @@
-"use client";
-
 import { Bars } from "@/components/bars";
 import { PERSONAS, type Persona } from "@/lib/domain";
 

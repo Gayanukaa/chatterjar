@@ -7,7 +7,7 @@ import {
   type Poll,
 } from "./domain";
 
-export type ExportFormat = "json" | "csv";
+type ExportFormat = "json" | "csv";
 export type SessionExport = ReturnType<typeof buildExport>;
 
 /** Raw question data: rank score when visible, saved score when hidden. */

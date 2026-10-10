@@ -12,11 +12,10 @@ interface RoomMeta extends RoomInfo {
   tokenHash: string;
 }
 
-// Lookups run on every request. Existing rooms are cached briefly per instance;
-// misses are not, so random codes cannot grow memory. A short TTL limits how
+// Lookups run on every request. Only owner-created rooms are cached (misses
+// are not), so the cache is bounded by the room count. A short TTL limits how
 // long another instance trusts a room that was just deleted.
 const META_TTL_MS = 5_000;
-const META_MAX = 500;
 const metaCache = new Map<string, { at: number; meta: RoomMeta }>();
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
@@ -36,17 +35,7 @@ export async function getRoomMeta(code: string): Promise<RoomMeta | null> {
         tokenHash: String(raw.tokenHash),
       }
     : null;
-  if (meta) {
-    if (metaCache.size >= META_MAX) {
-      const now = Date.now();
-      for (const [c, v] of metaCache)
-        if (now - v.at >= META_TTL_MS) metaCache.delete(c);
-      // Still full: drop the oldest entry (Map keeps insertion order).
-      if (metaCache.size >= META_MAX)
-        metaCache.delete(metaCache.keys().next().value!);
-    }
-    metaCache.set(code, { at: Date.now(), meta });
-  }
+  if (meta) metaCache.set(code, { at: Date.now(), meta });
   return meta;
 }
 

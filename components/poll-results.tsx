@@ -1,5 +1,3 @@
-"use client";
-
 import { topWords } from "@/lib/domain";
 
 const TONES = [
