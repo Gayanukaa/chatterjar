@@ -1,6 +1,5 @@
-import claudeCodeTalk from "@/data/packs/claude-code-talk.json";
-import demo from "@/data/packs/demo.json";
-import spotTheAi from "@/data/packs/spot-the-ai.json";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { isPollKind, optionsFor, type Poll } from "./domain";
 
 export interface Pack {
@@ -18,8 +17,13 @@ export interface Pack {
   }[];
 }
 
-// Add a pack: drop a JSON file in data/packs/ and list it here.
-export const PACKS: Pack[] = [demo, spotTheAi, claudeCodeTalk];
+const DIR = path.join(process.cwd(), "data/packs");
+
+// Every JSON file in data/packs/ is a pack; gitignored ones stay local-only.
+export const PACKS: Pack[] = readdirSync(DIR)
+  .filter((f) => f.endsWith(".json"))
+  .sort()
+  .map((f) => JSON.parse(readFileSync(path.join(DIR, f), "utf8")));
 
 /** Pack list for /admin; never sent to phones because packs hold answers. */
 export const packSummaries = () =>

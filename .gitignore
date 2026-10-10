@@ -47,3 +47,7 @@ spot-the-ai.zip
 # local agent skills installed by vercel integration
 .agents/
 skills-lock.json
+
+# local-only diagram source and private content packs
+docs/architecture.drawio
+data/packs/claude-code-talk.json
