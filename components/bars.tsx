@@ -1,11 +1,11 @@
-export interface BarItem {
+interface BarItem {
   key: string;
   label: string;
   value: number;
   highlight?: boolean;
 }
 
-/** Horizontal result bars; widths animate when values change. */
+/** Horizontal result bars; fills slide when values change. */
 export function Bars({
   items,
   large = false,
@@ -36,9 +36,12 @@ export function Bars({
             <div
               className={`mt-1.5 w-full overflow-hidden rounded-full bg-line ${large ? "h-7" : "h-3"}`}
             >
+              {/* translateX skips layout and keeps the round end; 0 fades out. */}
               <div
-                className={`h-full rounded-full transition-[width] duration-700 ease-out ${item.highlight ? "bg-green" : "bg-blue"}`}
-                style={{ width: `${(item.value / max) * 100}%` }}
+                className={`h-full w-full rounded-full transition-[transform,opacity] duration-700 ease-out ${item.highlight ? "bg-green" : "bg-blue"} ${item.value ? "" : "opacity-0"}`}
+                style={{
+                  transform: `translateX(-${100 - (item.value / max) * 100}%)`,
+                }}
               />
             </div>
           </li>
