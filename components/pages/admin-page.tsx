@@ -1,6 +1,7 @@
 "use client";
 
 import { WifiOff } from "lucide-react";
+import { Credit } from "@/components/credit";
 import { Logo } from "@/components/logo";
 import { CreatePollForm } from "@/components/admin/create-poll-form";
 import { KeyForm } from "@/components/admin/key-form";
@@ -28,6 +29,7 @@ export function AdminPage() {
         <p className="mt-2 text-muted">
           Check the admin link. The room may have been deleted.
         </p>
+        <Credit className="mt-6 text-sm" />
       </main>
     );
   }
@@ -120,6 +122,7 @@ export function AdminPage() {
           />
         </div>
       </div>
+      <Credit className="mt-12 border-t border-line pt-2 text-sm" />
     </main>
   );
 }

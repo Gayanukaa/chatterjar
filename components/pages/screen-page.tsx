@@ -1,6 +1,7 @@
 "use client";
 
 import { WifiOff } from "lucide-react";
+import { Credit } from "@/components/credit";
 import { JoinHost } from "@/components/screen/join-host";
 import { JoinQr } from "@/components/screen/join-qr";
 import { ScreenPoll } from "@/components/screen/screen-poll";
@@ -63,6 +64,7 @@ export function ScreenPage({ initialTheme }: { initialTheme?: ScreenTheme }) {
               Connection lost. Trying again.
             </p>
           )}
+          <Credit className="text-base" />
           <ThemeToggle theme={theme} onToggle={toggle} />
         </div>
       </footer>

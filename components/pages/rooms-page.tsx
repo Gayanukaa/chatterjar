@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { KeyForm } from "@/components/admin/key-form";
 import { Button, ErrorText, FIELD, Section } from "@/components/admin/ui";
 import { readKey, saveKey } from "@/components/admin/use-admin";
+import { Credit } from "@/components/credit";
 import { Logo } from "@/components/logo";
 import { request, roomPath } from "@/lib/api";
 import type { RoomInfo } from "@/lib/rooms";
@@ -222,6 +223,7 @@ export function RoomsPage() {
           )}
         </Section>
       </div>
+      <Credit className="mt-12 border-t border-line pt-2 text-sm" />
     </main>
   );
 }

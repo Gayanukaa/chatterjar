@@ -3,6 +3,7 @@
 import { KeyRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Button, ErrorText, FIELD } from "./ui";
+import { Credit } from "@/components/credit";
 import { Logo } from "@/components/logo";
 
 /** Asks for the admin key when none is stored or the stored one was rejected. */
@@ -60,6 +61,7 @@ export function KeyForm({
           {button ?? "Open admin"}
         </Button>
       </form>
+      <Credit className="mt-8 text-sm" />
     </main>
   );
 }
