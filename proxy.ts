@@ -27,5 +27,5 @@ export function proxy(req: NextRequest) {
 
 // /api/room is CDN-cached, so it must never carry a Set-Cookie header.
 export const config = {
-  matcher: ["/((?!_next/|spot/|favicon.ico|api/room).*)"],
+  matcher: ["/((?!_next/|favicon.ico|api/room).*)"],
 };

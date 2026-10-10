@@ -174,12 +174,12 @@ export function CreatePollForm({ act }: { act: Act }) {
                 </div>
                 <div className="grid gap-1.5 sm:order-1">
                   <label htmlFor={`opt-${key}-src`} className="text-sm">
-                    Media path
+                    Media path or link
                   </label>
                   <input
                     id={`opt-${key}-src`}
                     disabled={!row.type}
-                    placeholder="/spot/assets/x.png"
+                    placeholder="https://upload.wikimedia.org/..."
                     spellCheck={false}
                     autoComplete="off"
                     value={row.src}

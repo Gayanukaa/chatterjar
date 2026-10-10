@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PACKS, packPolls } from "@/lib/packs";
 import { existsSync } from "node:fs";
 import {
+  isMediaSrc,
   normalizeWord,
   optionsFor,
   publicPoll,
@@ -140,7 +141,7 @@ describe("poll options", () => {
 });
 
 describe("content packs", () => {
-  it("every pack is valid, with prefixed ids and real media files", () => {
+  it("every pack is valid, with prefixed ids and usable media", () => {
     for (const pack of PACKS) {
       const polls = packPolls(pack, 1000);
       expect(polls, pack.id).not.toBeNull();
@@ -148,8 +149,11 @@ describe("content packs", () => {
       for (const poll of polls ?? []) {
         expect(poll.id.startsWith(`${pack.id}-`)).toBe(true);
         for (const o of poll.options) {
-          if (o.media)
-            expect(existsSync(`public${o.media.src}`), o.media.src).toBe(true);
+          if (!o.media) continue;
+          // Site paths must exist; links are checked by isMediaSrc.
+          const local = o.media.src.startsWith("/");
+          if (local) expect(existsSync(`public${o.media.src}`)).toBe(true);
+          else expect(isMediaSrc(o.media.src), o.media.src).toBe(true);
         }
       }
     }
@@ -186,11 +190,25 @@ describe("content packs", () => {
       "image",
       "text",
       "image",
-      "text",
       "audio",
     ]);
     // The AI side varies, so A is not always the answer.
     expect(new Set(polls.map((p) => p.correct)).size).toBe(2);
+  });
+});
+
+describe("media links", () => {
+  it("accepts site paths and https links on the allowed hosts only", () => {
+    expect(isMediaSrc("/img/a.png")).toBe(true);
+    expect(isMediaSrc("https://upload.wikimedia.org/a.jpg")).toBe(true);
+    expect(isMediaSrc("https://raw.githubusercontent.com/o/r/a.txt")).toBe(
+      true,
+    );
+    expect(isMediaSrc("//evil.example/a.png")).toBe(false);
+    expect(isMediaSrc("http://upload.wikimedia.org/a.jpg")).toBe(false);
+    expect(isMediaSrc("https://evil.example/a.jpg")).toBe(false);
+    expect(isMediaSrc("javascript:alert(1)")).toBe(false);
+    expect(isMediaSrc(42)).toBe(false);
   });
 });
 
