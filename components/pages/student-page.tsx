@@ -1,5 +1,6 @@
 "use client";
 
+import { Credit } from "@/components/credit";
 import { Logo } from "@/components/logo";
 import {
   Compass,
@@ -139,6 +140,8 @@ export function StudentPage() {
           )}
         </section>
       ))}
+
+      <Credit className="px-4 pb-2 text-center text-sm" />
 
       {state && !missing && <ReactionBar />}
     </div>
