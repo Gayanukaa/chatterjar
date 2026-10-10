@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  REACTION_COLORS,
-  REACTION_ICONS,
-  REACTION_LABELS,
-} from "@/components/reaction-icon";
+import { REACTIONS } from "@/components/reaction-icon";
 import { useRoom } from "@/components/room";
 import { post, withRoom } from "@/lib/api";
 import { REACTION_TYPES, type Reaction } from "@/lib/domain";
@@ -56,8 +52,7 @@ export function ReactionBar() {
         className="grid grid-cols-4 gap-1 py-1.5"
       >
         {REACTION_TYPES.map((type) => {
-          const Icon = REACTION_ICONS[type];
-          const label = REACTION_LABELS[type];
+          const { Icon, label, color } = REACTIONS[type];
           const hit = popped?.type === type;
           return (
             <button
@@ -71,7 +66,7 @@ export function ReactionBar() {
               <Icon
                 key={hit ? popped.n : 0}
                 aria-hidden
-                className={`size-6 ${REACTION_COLORS[type]} ${hit ? styles.pop : ""}`}
+                className={`size-6 ${color} ${hit ? styles.pop : ""}`}
               />
               <span aria-hidden>{label}</span>
             </button>

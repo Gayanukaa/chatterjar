@@ -75,7 +75,7 @@ export interface RoomState {
   me: DeviceState;
 }
 
-// Labels live in REACTION_LABELS in components/reaction-icon.tsx.
+// Labels live in REACTIONS in components/reaction-icon.tsx.
 export const REACTION_TYPES = ["applause", "love", "idea", "confused"] as const;
 export type Reaction = (typeof REACTION_TYPES)[number];
 export const REACTIONS_PER_WINDOW = 10;
