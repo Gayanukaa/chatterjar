@@ -1,17 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { post, withRoom } from "@/lib/api";
+import { post, request, withRoom, type ApiResult } from "@/lib/api";
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
+import type { packSummaries } from "@/lib/packs";
 import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
-export interface PackSummary {
-  id: string;
-  title: string;
-  description: string;
-  count: number;
-}
+export type PackSummary = ReturnType<typeof packSummaries>[number];
+export type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
 export interface AdminState {
   activeId: string | null;
   polls: AdminPoll[];
@@ -23,7 +20,7 @@ export interface AdminState {
 
 const storeKey = (room: string) => `room-admin-key:${room}`;
 
-function readKey(room: string): string | null {
+export function readKey(room: string): string | null {
   try {
     return sessionStorage.getItem(storeKey(room));
   } catch {
@@ -31,7 +28,7 @@ function readKey(room: string): string | null {
   }
 }
 
-function saveKey(room: string, key: string | null) {
+export function saveKey(room: string, key: string | null) {
   try {
     if (key) sessionStorage.setItem(storeKey(room), key);
     else sessionStorage.removeItem(storeKey(room));
@@ -77,19 +74,16 @@ export function useAdmin(room = "main") {
 
   const refresh = useCallback(async () => {
     if (!key) return;
-    try {
-      const res = await fetch(withRoom("/api/admin/state", room), {
-        cache: "no-store",
-        headers: { "x-admin-key": key },
-      });
-      if (res.status === 401) return reject();
-      if (res.status === 404) return setMissing(true);
-      if (!res.ok) throw new Error(String(res.status));
-      setData(await res.json());
-      setOffline(false);
-    } catch {
-      setOffline(true);
-    }
+    const res = await request<AdminState>(
+      "GET",
+      withRoom("/api/admin/state", room),
+      undefined,
+      key,
+    );
+    if (res.status === 401) return reject();
+    if (res.status === 404) return setMissing(true);
+    setOffline(!res.ok);
+    if (res.ok) setData(res.data);
   }, [key, reject, room]);
 
   useEffect(() => {
@@ -124,7 +118,7 @@ export function useAdmin(room = "main") {
 
   /** GETs a file with the key header and saves it; the key stays out of URLs. */
   const download = useCallback(
-    async (path: string): Promise<string | null> => {
+    async (path: string): Promise<Pick<ApiResult, "ok" | "data">> => {
       try {
         const res = await fetch(withRoom(path, room), {
           cache: "no-store",
@@ -132,9 +126,9 @@ export function useAdmin(room = "main") {
         });
         if (res.status === 401) {
           reject();
-          return "This admin key is wrong.";
+          return { ok: false, data: { error: "This admin key is wrong." } };
         }
-        if (!res.ok) return "Could not download the results. Try again.";
+        if (!res.ok) return { ok: false, data: {} };
         const name = /filename="([^"]+)"/.exec(
           res.headers.get("content-disposition") ?? "",
         )?.[1];
@@ -145,13 +139,34 @@ export function useAdmin(room = "main") {
         a.click();
         // Revoke later: some browsers read the blob after click() returns.
         setTimeout(() => URL.revokeObjectURL(url), 10_000);
-        return null;
+        return { ok: true, data: {} };
       } catch {
-        return "No connection. Try again.";
+        return { ok: false, data: { error: "No connection. Try again." } };
       }
     },
     [key, reject, room],
   );
 
   return { key, data, offline, missing, keyError, signIn, act, download };
+}
+
+/** Runs one admin call at a time: `busy` is its tag, `error` its failure. */
+export function useAction() {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(
+    tag: string,
+    call: () => Promise<Pick<ApiResult, "ok" | "data">>,
+    msg: string,
+  ) {
+    setBusy(tag);
+    setError(null);
+    const res = await call();
+    if (!res.ok) setError(res.data.error ?? msg);
+    setBusy(null);
+    return res.ok;
+  }
+
+  return { busy, error, run };
 }

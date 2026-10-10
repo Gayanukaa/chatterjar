@@ -1,11 +1,11 @@
 "use client";
 
 import { RotateCcw } from "lucide-react";
-import { useState } from "react";
 import { Bars } from "@/components/bars";
 import type { ApiResult } from "@/lib/api";
 import { PERSONAS, type Persona } from "@/lib/domain";
 import { Button, ErrorText, Section } from "./ui";
+import { useAction } from "./use-admin";
 
 /** Persona quiz tally with a confirmed reset. */
 export function QuizPanel({
@@ -15,8 +15,7 @@ export function QuizPanel({
   tally: Record<Persona, number> | null;
   onReset: () => Promise<ApiResult>;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, run } = useAction();
   const items = PERSONAS.map((p) => ({
     key: p,
     label: p,
@@ -28,11 +27,7 @@ export function QuizPanel({
     if (!window.confirm("Reset the quiz tally? All quiz answers go to 0.")) {
       return;
     }
-    setBusy(true);
-    setError(null);
-    const res = await onReset();
-    if (!res.ok) setError(res.data.error ?? "Could not reset. Try again.");
-    setBusy(false);
+    await run("reset", onReset, "Could not reset. Try again.");
   }
 
   return (
@@ -52,7 +47,7 @@ export function QuizPanel({
           <Bars items={items} />
         )}
         {error && <ErrorText>{error}</ErrorText>}
-        <Button variant="danger" onClick={reset} disabled={busy}>
+        <Button variant="danger" onClick={reset} disabled={busy !== null}>
           <RotateCcw aria-hidden />
           Reset quiz tally
         </Button>

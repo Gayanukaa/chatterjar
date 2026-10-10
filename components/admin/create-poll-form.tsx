@@ -2,7 +2,6 @@
 
 import { Minus, Plus } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import type { ApiResult } from "@/lib/api";
 import {
   KIND_LABEL,
   OPTION_KEYS,
@@ -11,8 +10,8 @@ import {
   type PollKind,
 } from "@/lib/domain";
 import { Button, ErrorText, FIELD, Section } from "./ui";
+import type { Act } from "./use-admin";
 
-type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
 interface Row {
   label: string;
   type: MediaType | "";

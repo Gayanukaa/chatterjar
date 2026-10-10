@@ -2,11 +2,9 @@
 
 import { Check, ShieldAlert, X } from "lucide-react";
 import { useState } from "react";
-import type { ApiResult } from "@/lib/api";
 import type { PendingQuestion } from "@/lib/domain";
 import { Button, ErrorText, Section } from "./ui";
-
-type Act = (path: string, payload?: unknown) => Promise<ApiResult>;
+import { useAction, type Act } from "./use-admin";
 
 const REASONS = { language: "Strong language", link: "Contains a link" };
 const isReason = (v: string): v is keyof typeof REASONS =>
@@ -26,8 +24,7 @@ export function ReviewPanel({
   act: Act;
   onDone: () => void;
 }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, run: start } = useAction();
   // The new value shows until the next admin state differs from `from`.
   const [override, setOverride] = useState<{
     value: boolean;
@@ -36,14 +33,8 @@ export function ReviewPanel({
   const checked =
     override && override.from === moderate ? override.value : moderate;
 
-  async function run(key: string, path: string, payload: object, msg: string) {
-    setBusy(key);
-    setError(null);
-    const res = await act(path, payload);
-    if (!res.ok) setError(res.data.error ?? msg);
-    setBusy(null);
-    return res.ok;
-  }
+  const run = (key: string, path: string, payload: object, msg: string) =>
+    start(key, () => act(path, payload), msg);
 
   async function toggle(value: boolean) {
     setOverride({ value, from: moderate });
