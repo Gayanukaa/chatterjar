@@ -14,7 +14,6 @@ export const en = {
     pollKind: {
       choice: "Multiple choice",
       words: "Word cloud",
-      rating: "Rating 1 to 5",
     },
     reactions: {
       applause: "Applause",
@@ -25,16 +24,12 @@ export const en = {
     units: {
       vote: { one: "vote", other: "votes" },
       answer: { one: "answer", other: "answers" },
-      rating: { one: "rating", other: "ratings" },
       upvote: { one: "upvote", other: "upvotes" },
     },
-    stars: { one: "{count} star", other: "{count} stars" },
     correctAnswer: "Correct answer: {answer}",
     source: "Source: {source}",
     votingClosed: "Voting is closed",
     noAnswers: "No answers yet.",
-    noRatings: "No ratings yet",
-    averageRating: "average rating",
     wordCloud: "Word cloud",
     mediaSample: "Sample {label}",
     mediaFailed: "Could not load this file.",
@@ -55,19 +50,16 @@ export const en = {
       done: {
         choice: "You voted {vote}",
         words: "You answered {vote}",
-        rating: "You rated {vote}",
       },
       hint: {
         choice: "Pick one option. You can vote once.",
         words: "Send one short answer. You can answer once.",
-        rating: "Rate from 1 (low) to 5 (high). You can rate once.",
       },
       failed: "Your vote did not go through. Try again.",
       option: "Vote {key}",
       answerLabel: "Your answer",
       wordRule: "Letters, numbers, spaces and hyphens.",
       sendAnswer: "Send answer",
-      rate: "Rate {key}",
     },
     questions: {
       label: "Your question",
@@ -108,8 +100,6 @@ export const en = {
     noPoll: "No poll yet",
     noPollHint: "The next poll shows here when it opens.",
     wordsPrompt: "Send your answer from your phone.",
-    ratingScale: "Rating from 1 to 5",
-    ratingPrompt: "Rate from 1 (low) to 5 (high) on your phone.",
     status: {
       open: "Voting is open",
       closed: "Voting is closed",
@@ -180,7 +170,6 @@ export const en = {
       chip: { open: "Open", closed: "Closed", revealed: "Revealed" },
       actions: { open: "Open", closed: "Close", revealed: "Reveal" },
       active: "Active on phones and screen",
-      average: "Average {value}",
       topAnswers: "Top answers",
       correct: "Correct",
       noCorrect: "No correct option.",
@@ -194,8 +183,6 @@ export const en = {
       type: "Poll type",
       wordsHint:
         "Phones send one short answer each. The screen shows a word cloud after you reveal.",
-      ratingHint:
-        "Phones rate from 1 to 5. The screen shows the average after you reveal.",
       option: "Option {key}",
       text: "Text",
       media: "Media",
@@ -317,7 +304,7 @@ export const en = {
     pickPack: "Pick a content pack to load.",
     badPack: "The {title} pack is not valid.",
     exportFormat: "Use format=json or format=csv.",
-    pollKind: "Pick a poll type: choice, words or rating.",
+    pollKind: "Pick a poll type: choice or words.",
     pollQuestion: "Write a question.",
     pollOptions: "Add 2 to 4 options with text.",
     settings: "Send moderate: true or false.",

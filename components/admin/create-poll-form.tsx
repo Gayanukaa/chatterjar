@@ -22,7 +22,7 @@ interface Row {
 const MEDIA = ["", "image", "code", "text", "audio"] as const;
 const emptyRow = (): Row => ({ label: "", type: "", src: "" });
 
-/** Form to create a poll: choice (2 to 4 options), word cloud or rating. */
+/** Form to create a poll: choice (2 to 4 options) or word cloud. */
 export function CreatePollForm({ act }: { act: Act }) {
   const t = useT();
   const [question, setQuestion] = useState("");
@@ -116,9 +116,6 @@ export function CreatePollForm({ act }: { act: Act }) {
           </select>
           {kind === "words" && (
             <p className="text-sm text-muted">{t("admin.create.wordsHint")}</p>
-          )}
-          {kind === "rating" && (
-            <p className="text-sm text-muted">{t("admin.create.ratingHint")}</p>
           )}
         </div>
 

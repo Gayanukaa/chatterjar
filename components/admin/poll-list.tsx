@@ -8,16 +8,10 @@ import {
   Lock,
   Play,
   Radio,
-  Star,
 } from "lucide-react";
 import { useState } from "react";
 import type { ApiResult } from "@/lib/api";
-import {
-  ratingAverage,
-  topWords,
-  type Option,
-  type PollStatus,
-} from "@/lib/domain";
+import { kindOf, topWords, type Option, type PollStatus } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 import { Button, ErrorText, FIELD, Section } from "./ui";
 import type { AdminPoll, PackSummary } from "./use-admin";
@@ -114,7 +108,7 @@ export function PollList({
         <ol className="grid gap-3">
           {polls.map((poll) => {
             const active = poll.id === activeId;
-            const kind = poll.kind ?? "choice";
+            const kind = kindOf(poll);
             // The same top words the screen shows, so the host can check them.
             const words = kind === "words" ? topWords(poll.votes) : [];
             const rows: Option[] = kind === "words" ? [] : poll.options;
@@ -124,8 +118,6 @@ export function PollList({
               0,
             );
             const max = Math.max(1, ...counts);
-            const average =
-              kind === "rating" ? ratingAverage(poll.votes) : null;
             const unit = kind === "words" ? "answer" : "vote";
             return (
               <li
@@ -154,17 +146,6 @@ export function PollList({
                 <h3 className="mt-2 font-heading text-lg leading-snug font-semibold text-pretty">
                   {poll.question}
                 </h3>
-                {kind === "rating" && (
-                  <p className="mt-2 flex items-center gap-1.5 text-sm font-semibold">
-                    <Star
-                      aria-hidden
-                      className="size-4 fill-amber text-amber"
-                    />
-                    {average === null
-                      ? t("common.noRatings")
-                      : t("admin.polls.average", { value: average.toFixed(1) })}
-                  </p>
-                )}
                 {kind === "words" &&
                   (words.length === 0 ? (
                     <p className="mt-3 text-sm text-muted">
@@ -193,11 +174,9 @@ export function PollList({
                         o.key === poll.correct &&
                         (poll.status === "revealed" || peek === poll.id);
                       const text =
-                        kind === "rating"
-                          ? t("common.stars", { count: Number(o.key) })
-                          : o.media && o.label === o.key
-                            ? fileName(o.media.src)
-                            : o.label;
+                        o.media && o.label === o.key
+                          ? fileName(o.media.src)
+                          : o.label;
                       return (
                         <li key={o.key} className="text-sm">
                           <div className="flex items-start gap-2.5">

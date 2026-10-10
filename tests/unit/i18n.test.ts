@@ -37,8 +37,6 @@ describe("t()", () => {
     expect(t("common.units.vote", { count: 1 })).toBe("vote");
     expect(t("common.units.vote", { count: 0 })).toBe("votes");
     expect(t("common.units.vote", { count: 2 })).toBe("votes");
-    expect(t("common.stars", { count: 1 })).toBe("1 star");
-    expect(t("common.stars", { count: 5 })).toBe("5 stars");
     expect(t("admin.polls.packOption", { title: "Demo", count: 1 })).toBe(
       "Demo (1 poll)",
     );

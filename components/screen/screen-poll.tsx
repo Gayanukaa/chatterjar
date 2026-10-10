@@ -1,17 +1,16 @@
 "use client";
 
-import { CircleCheck, Lock, Radio, Smartphone, Star } from "lucide-react";
+import { CircleCheck, Lock, Radio, Smartphone } from "lucide-react";
 import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";
-import { RatingResults, WordCloud } from "@/components/poll-results";
-import type { PollKind, PublicPoll } from "@/lib/domain";
+import { WordCloud } from "@/components/poll-results";
+import { kindOf, type PollKind, type PublicPoll } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 import styles from "./screen.module.css";
 
-const UNIT: Record<PollKind, "vote" | "answer" | "rating"> = {
+const UNIT: Record<PollKind, "vote" | "answer"> = {
   choice: "vote",
   words: "answer",
-  rating: "rating",
 };
 
 /** Active poll for the projector; results appear only after the reveal. */
@@ -32,6 +31,7 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
   }
 
   const revealed = poll.status === "revealed";
+  const kind = kindOf(poll);
   return (
     <section
       data-testid="screen-poll"
@@ -50,23 +50,11 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
 
       {/* Clip so long content never pushes the vote count off screen. */}
       <div className="mt-8 min-h-0 flex-1 overflow-hidden">
-        {poll.kind === "words" ? (
+        {kind === "words" ? (
           revealed ? (
             <WordCloud results={poll.results ?? {}} large />
           ) : (
             <Prompt text={t("screen.wordsPrompt")} />
-          )
-        ) : poll.kind === "rating" ? (
-          revealed ? (
-            <div className="max-w-[56rem]">
-              <RatingResults
-                results={poll.results ?? {}}
-                average={poll.average}
-                large
-              />
-            </div>
-          ) : (
-            <Stars />
           )
         ) : revealed ? (
           <Results poll={poll} />
@@ -75,11 +63,7 @@ export function ScreenPoll({ poll }: { poll: PublicPoll | null }) {
         )}
       </div>
 
-      <VoteCount
-        total={poll.total}
-        status={poll.status}
-        unit={UNIT[poll.kind] ?? UNIT.choice}
-      />
+      <VoteCount total={poll.total} status={poll.status} unit={UNIT[kind]} />
     </section>
   );
 }
@@ -115,23 +99,6 @@ function Prompt({ text }: { text: string }) {
       <Smartphone aria-hidden className="size-10 shrink-0 text-blue" />
       {text}
     </p>
-  );
-}
-
-function Stars() {
-  const t = useT();
-  return (
-    <div className="space-y-8">
-      <ul aria-label={t("screen.ratingScale")} className="flex gap-6">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <li key={n} className="flex flex-col items-center gap-2">
-            <Star aria-hidden className="size-20 text-amber" />
-            <span className="font-heading text-4xl font-bold">{n}</span>
-          </li>
-        ))}
-      </ul>
-      <Prompt text={t("screen.ratingPrompt")} />
-    </div>
   );
 }
 

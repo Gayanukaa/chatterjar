@@ -1,9 +1,11 @@
 import {
   PERSONAS,
   createdAtFromScore,
+  kindOf,
   votesFromScore,
   type Persona,
   type Poll,
+  type PollKind,
   type PollStatus,
 } from "./domain";
 
@@ -15,7 +17,7 @@ export interface SessionExport {
   polls: {
     id: string;
     question: string;
-    kind: "choice" | "words" | "rating";
+    kind: PollKind;
     status: PollStatus;
     options: { key: string; label: string; votes: number }[];
     correct: string | null;
@@ -53,7 +55,7 @@ export function buildExport(input: {
   tally: Record<string, unknown> | null;
 }): SessionExport {
   const polls = input.polls.map(({ poll, votes }) => {
-    const kind = poll.kind ?? "choice";
+    const kind = kindOf(poll);
     // Word clouds have no fixed options: every distinct answer is a row.
     const options =
       kind === "words"

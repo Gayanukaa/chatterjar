@@ -5,7 +5,7 @@ export const PERSONAS: readonly string[] = quiz.personas;
 export type Persona = string;
 export type PollStatus = "open" | "closed" | "revealed";
 export type MediaType = "image" | "code" | "text" | "audio";
-export type PollKind = "choice" | "words" | "rating";
+export type PollKind = "choice" | "words";
 
 export interface Media {
   type: MediaType;
@@ -35,10 +35,8 @@ export interface PublicPoll extends Omit<Poll, "correct" | "kind"> {
   kind: PollKind;
   correct?: string;
   total: number;
-  // Choice and rating: count per option key. Words: the top words.
+  // Choice: count per option key. Words: the top words.
   results?: Record<string, number>;
-  // Rating only, after reveal, when at least one device rated.
-  average?: number;
 }
 
 export interface Question {
@@ -89,12 +87,9 @@ export const OPTION_KEYS = ["A", "B", "C", "D"];
 // Upvotes add VOTE_WEIGHT; low digits hold createdAt ms, newest wins ties.
 export const VOTE_WEIGHT = 1e13;
 export const RID_PATTERN = /^[0-9a-f-]{36}$/i;
-export const POLL_KINDS: PollKind[] = ["choice", "words", "rating"];
+export const POLL_KINDS: PollKind[] = ["choice", "words"];
 export const MAX_WORD = 24;
 export const TOP_WORDS = 40;
-export const RATING_OPTIONS: Option[] = ["1", "2", "3", "4", "5"].map(
-  (key) => ({ key, label: key }),
-);
 // \p{M} keeps Sinhala and Tamil vowel signs; ZWJ/ZWNJ form Sinhala conjuncts.
 const WORD_PATTERN = /^[\p{L}\p{M}\p{N}\u200C\u200D -]+$/u;
 const WORD_CHAR = /[\p{L}\p{N}]/u;
@@ -120,6 +115,10 @@ export function scorePersona(
 
 export const isPollKind = (v: unknown): v is PollKind =>
   typeof v === "string" && POLL_KINDS.includes(v as PollKind);
+
+// Old or retired kinds (such as "rating") still in Redis show as choice.
+export const kindOf = (poll: { kind?: unknown }): PollKind =>
+  isPollKind(poll.kind) ? poll.kind : "choice";
 
 /** Word cloud answer: trimmed, single spaces, lowercase; null if not valid. */
 export function normalizeWord(text: unknown): string | null {
@@ -153,22 +152,9 @@ export function topWords(
     .slice(0, limit);
 }
 
-/** Mean of 1 to 5 star counts, to one decimal; null when nobody rated. */
-export function ratingAverage(votes: Record<string, number>): number | null {
-  let sum = 0;
-  let count = 0;
-  for (const { key } of RATING_OPTIONS) {
-    const n = Number(votes[key] ?? 0);
-    sum += n * Number(key);
-    count += n;
-  }
-  return count ? Math.round((sum / count) * 10) / 10 : null;
-}
-
-/** Options a poll kind needs: parsed for choice, fixed for rating, none for words. */
+/** Options a poll kind needs: parsed for choice, none for words. */
 export function optionsFor(kind: PollKind, raw: unknown): Option[] | null {
   if (kind === "words") return [];
-  if (kind === "rating") return RATING_OPTIONS;
   return parseOptions(raw);
 }
 
@@ -177,7 +163,7 @@ export function publicPoll(
   poll: Poll,
   votes: Record<string, number>,
 ): PublicPoll {
-  const kind = poll.kind ?? "choice";
+  const kind = kindOf(poll);
   const total = Object.values(votes).reduce((sum, n) => sum + Number(n), 0);
   const base: PublicPoll = {
     id: poll.id,
@@ -197,15 +183,6 @@ export function publicPoll(
   const results = Object.fromEntries(
     poll.options.map((o) => [o.key, Number(votes[o.key] ?? 0)]),
   );
-  if (kind === "rating") {
-    const average = ratingAverage(votes);
-    return {
-      ...base,
-      source: poll.source,
-      results,
-      ...(average === null ? {} : { average }),
-    };
-  }
   return { ...base, correct: poll.correct, source: poll.source, results };
 }
 

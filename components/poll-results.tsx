@@ -1,8 +1,6 @@
 "use client";
 
-import { Star } from "lucide-react";
-import { Bars } from "@/components/bars";
-import { RATING_OPTIONS, topWords } from "@/lib/domain";
+import { topWords } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 
 const TONES = [
@@ -59,47 +57,5 @@ export function WordCloud({
         </li>
       ))}
     </ul>
-  );
-}
-
-/** Revealed rating: the average with a star, then bars from 5 down to 1. */
-export function RatingResults({
-  results,
-  average,
-  large = false,
-}: {
-  results: Record<string, number>;
-  average?: number;
-  large?: boolean;
-}) {
-  const t = useT();
-  const items = [...RATING_OPTIONS].reverse().map((o) => ({
-    key: o.key,
-    label: t("common.stars", { count: Number(o.key) }),
-    value: results[o.key] ?? 0,
-  }));
-  return (
-    <div
-      data-testid="rating-results"
-      className={large ? "space-y-8" : "space-y-4"}
-    >
-      <p className="flex items-center gap-3">
-        <Star
-          aria-hidden
-          className={`shrink-0 fill-amber text-amber ${large ? "size-16" : "size-9"}`}
-        />
-        <span
-          className={`font-heading font-bold tabular-nums leading-none ${large ? "text-8xl" : "text-5xl"}`}
-        >
-          {average === undefined ? "-" : average.toFixed(1)}
-        </span>
-        <span className={large ? "text-3xl text-muted" : "text-muted"}>
-          {average === undefined
-            ? t("common.noRatings")
-            : t("common.averageRating")}
-        </span>
-      </p>
-      <Bars items={items} large={large} />
-    </div>
   );
 }

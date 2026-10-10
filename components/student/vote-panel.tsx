@@ -1,26 +1,20 @@
 "use client";
 
-import { Check, Lock, Send, Star } from "lucide-react";
+import { Check, Lock, Send } from "lucide-react";
 import { useState } from "react";
 import { Bars } from "@/components/bars";
 import { OptionMedia } from "@/components/option-media";
-import { RatingResults, WordCloud } from "@/components/poll-results";
+import { WordCloud } from "@/components/poll-results";
 import { post, withRoom } from "@/lib/api";
 import { useRoom } from "@/components/room";
-import {
-  MAX_WORD,
-  RATING_OPTIONS,
-  type PollKind,
-  type PublicPoll,
-  isPollKind,
-} from "@/lib/domain";
+import { MAX_WORD, type PublicPoll, kindOf } from "@/lib/domain";
 import { useT } from "@/lib/i18n/react";
 import { ErrorNote, errorText } from "./error-note";
 
 const BUTTON =
   "flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue px-4 text-base font-semibold text-white transition-colors hover:bg-blue/90 active:bg-ink disabled:bg-line disabled:text-muted";
 
-const UNIT = { choice: "vote", words: "answer", rating: "rating" } as const;
+const UNIT = { choice: "vote", words: "answer" } as const;
 
 /** Current poll: options, vote buttons, and results only after reveal. */
 export function VotePanel({
@@ -50,8 +44,7 @@ export function VotePanel({
   const vote = myVote;
   const canVote = poll.status === "open" && !vote && !sending;
   const revealed = poll.status === "revealed";
-  // A cached state from before poll types has no kind.
-  const kind: PollKind = isPollKind(poll.kind) ? poll.kind : "choice";
+  const kind = kindOf(poll);
 
   /** Sends an option key or a word; true when the server took it. */
   async function send(payload: { option: string } | { text: string }) {
@@ -115,13 +108,8 @@ export function VotePanel({
           data-testid="poll-results"
           className="space-y-4 rounded-2xl bg-white p-4 ring-1 ring-line"
         >
-          {poll.kind === "words" ? (
+          {kind === "words" ? (
             <WordCloud results={poll.results ?? {}} />
-          ) : poll.kind === "rating" ? (
-            <RatingResults
-              results={poll.results ?? {}}
-              average={poll.average}
-            />
           ) : (
             <>
               {poll.correct && (
@@ -151,17 +139,11 @@ export function VotePanel({
         </section>
       )}
 
-      {poll.kind === "words" ? (
+      {kind === "words" ? (
         !vote &&
         poll.status === "open" && (
           <WordForm disabled={!canVote} send={(text) => send({ text })} />
         )
-      ) : poll.kind === "rating" ? (
-        <RatingButtons
-          vote={vote}
-          disabled={!canVote}
-          send={(option) => send({ option })}
-        />
       ) : (
         <ChoiceOptions
           poll={poll}
@@ -267,42 +249,5 @@ function WordForm({
         {t("student.vote.sendAnswer")}
       </button>
     </form>
-  );
-}
-
-function RatingButtons({
-  vote,
-  disabled,
-  send,
-}: {
-  vote: string | null;
-  disabled: boolean;
-  send: (option: string) => Promise<boolean>;
-}) {
-  const t = useT();
-  return (
-    <ul className="grid grid-cols-5 gap-2">
-      {RATING_OPTIONS.map(({ key }) => {
-        const mine = vote === key;
-        return (
-          <li key={key}>
-            <button
-              type="button"
-              aria-label={t("student.vote.rate", { key })}
-              aria-pressed={mine}
-              disabled={disabled}
-              onClick={() => send(key)}
-              className={`flex min-h-16 w-full flex-col items-center justify-center gap-1 rounded-xl font-heading text-xl font-bold transition-colors disabled:cursor-not-allowed ${mine ? "bg-blue text-white" : "bg-white text-ink ring-1 ring-line hover:ring-blue disabled:text-muted disabled:hover:ring-line"}`}
-            >
-              <Star
-                aria-hidden
-                className={`size-6 ${mine ? "fill-white" : "text-amber"}`}
-              />
-              {key}
-            </button>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
