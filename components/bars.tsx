@@ -33,7 +33,7 @@ export function Bars({
               className={`flex items-baseline justify-between gap-3 ${s.text}`}
             >
               <span
-                className={`min-w-0 font-semibold break-words ${item.highlight ? "text-green" : "text-ink"}`}
+                className={`min-w-0 font-semibold wrap-anywhere ${item.highlight ? "text-green" : "text-ink"}`}
               >
                 {item.label}
               </span>

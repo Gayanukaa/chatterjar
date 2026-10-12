@@ -42,7 +42,7 @@ export function QuestionsPanel({
                   {q.votes === 1 ? "upvote" : "upvotes"}
                 </span>
               </span>
-              <p className="min-w-0 flex-1 wrap-break-word">{q.text}</p>
+              <p className="min-w-0 flex-1 wrap-anywhere">{q.text}</p>
               <Button
                 className="px-3"
                 onClick={() => hide(q.id)}
