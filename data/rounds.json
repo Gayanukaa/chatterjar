@@ -1,25 +1,6 @@
 [
   {
     "round": 1,
-    "type": "image",
-    "subject": "Image: cats",
-    "A": "assets/round1_cats_A.png",
-    "B": "assets/round1_cats_B.png",
-    "answer": "B",
-    "source": "ArtiFact (Rahman et al., ICIP 2023)"
-  },
-  {
-    "round": 2,
-    "type": "code",
-    "subject": "Code: cylinder area and volume (Java)",
-    "A": "assets/round2_code_A.java",
-    "B": "assets/round2_code_B.java",
-    "answer": "A",
-    "source": "GPTSniffer (Nguyen et al., JSS 2024)",
-    "task": "Read the radius and length of a cylinder. Print its area and volume."
-  },
-  {
-    "round": 3,
     "type": "text",
     "subject": "Essay paragraph",
     "A": "assets/round3_essay_A.txt",
@@ -29,16 +10,7 @@
     "task": "Discuss the importance of effective change leadership in adopting social media initiatives and address the potential ethical issues that may arise when implementing social media marketing strategies."
   },
   {
-    "round": 4,
-    "type": "image",
-    "subject": "Image: objects",
-    "A": "assets/round4_objects_A.png",
-    "B": "assets/round4_objects_B.png",
-    "answer": "A",
-    "source": "Chameleon (Yan et al., ICLR 2025)"
-  },
-  {
-    "round": 5,
+    "round": 2,
     "type": "audio",
     "subject": "Music",
     "A": "assets/round5_music_A.mp3",

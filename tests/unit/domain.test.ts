@@ -61,26 +61,19 @@ describe("publicPoll", () => {
 
 describe("buildPresets", () => {
   const presets = buildPresets(rounds, 1000);
-  it("builds 5 rounds and the exam question with fixed ids", () => {
-    expect(presets.map((p) => p.id)).toEqual([
-      "spot-1",
-      "spot-2",
-      "spot-3",
-      "spot-4",
-      "spot-5",
-      "exam-1",
-    ]);
-    expect(presets[5].correct).toBe("B");
+  it("builds 2 rounds and the exam question with fixed ids", () => {
+    expect(presets.map((p) => p.id)).toEqual(["spot-1", "spot-2", "exam-1"]);
+    expect(presets[2].correct).toBe("B");
   });
   it("names rounds without the type prefix and maps media", () => {
     expect(presets[0].question).toBe(
-      "Round 1: cats. Which one did an AI make?",
+      "Round 1: Essay paragraph. Which one did an AI make?",
     );
-    expect(presets[1].options[0].media).toEqual({
-      type: "code",
-      src: "/spot/assets/round2_code_A.java",
+    expect(presets[0].options[0].media).toEqual({
+      type: "text",
+      src: "/spot/assets/round3_essay_A.txt",
     });
-    expect(presets[4].options[1].media?.type).toBe("audio");
+    expect(presets[1].options[1].media?.type).toBe("audio");
   });
 });
 
