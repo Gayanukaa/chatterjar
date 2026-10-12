@@ -141,7 +141,7 @@ export function StudentPage() {
         </section>
       ))}
 
-      <Credit className="px-4 pb-2 text-center text-sm" />
+      <Credit className="justify-center px-4 pb-2 text-sm" />
 
       {state && !missing && <ReactionBar />}
     </div>
