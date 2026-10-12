@@ -1,37 +1,120 @@
 "use client";
 
-import { useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Bars } from "@/components/bars";
-import quiz from "@/data/quiz.json";
 import { post, withRoom } from "@/lib/api";
 import { useRoom } from "@/components/room";
-import { PERSONAS, isPersona, type Persona } from "@/lib/domain";
+import type { Quiz } from "@/lib/quiz";
 import { ErrorNote, errorText } from "./error-note";
 
-const QUIZ = quiz.questions as {
-  question: string;
-  answers: Record<Persona, string>;
-}[];
+type Loaded = { quiz: Quiz | null } | "error" | null;
 
-/** Five-question persona quiz; after it, the persona and the room tally. */
+/** Room persona quiz; after it, the persona and the room tally. */
 export function QuizPanel({
+  quiz,
   persona,
   tally,
   refresh,
 }: {
-  persona: Persona | null;
-  tally: Record<Persona, number> | null;
+  quiz: { v: string; personas: string[] };
+  persona: string | null;
+  tally: Record<string, number> | null;
   refresh: () => Promise<void>;
 }) {
-  const room = useRoom();
-  const [answers, setAnswers] = useState<(Persona | null)[]>(() =>
-    QUIZ.map(() => null),
+  // me.persona is never cached, so a room reset clears it here too.
+  if (!persona) return <QuizForm key={quiz.v} v={quiz.v} refresh={refresh} />;
+  return (
+    <div className="space-y-6">
+      <section
+        data-testid="quiz-result"
+        className="rounded-2xl bg-violet/[0.07] px-4 py-5"
+      >
+        <p className="font-heading text-3xl leading-tight font-bold text-violet">
+          {`You are ${/^[aeiou]/i.test(persona) ? "an" : "a"} ${persona}`}
+        </p>
+        <p className="mt-2 text-muted">
+          Your answer is in the room count below.
+        </p>
+      </section>
+      <section
+        data-testid="quiz-tally"
+        aria-labelledby="tally-heading"
+        className="space-y-3"
+      >
+        <h2 id="tally-heading" className="text-xl font-semibold">
+          The room so far
+        </h2>
+        <Bars
+          items={quiz.personas.map((p) => ({
+            key: p,
+            label: p,
+            value: tally?.[p] ?? 0,
+            highlight: p === persona,
+          }))}
+        />
+      </section>
+    </div>
   );
+}
+
+/** Questions of quiz version v; keyed by v, so a new quiz starts fresh. */
+function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
+  const room = useRoom();
+  const [loaded, setLoaded] = useState<Loaded>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [answers, setAnswers] = useState<(string | null)[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // me.persona is never cached, so a room reset clears it here too.
-  const shown = persona;
-  const complete = answers.every(Boolean);
+
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const url = withRoom(`/api/room/quiz?v=${encodeURIComponent(v)}`, room);
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(String(res.status));
+        const data: { quiz: Quiz | null } = await res.json();
+        if (!live) return;
+        setLoaded({ quiz: data.quiz });
+        setAnswers((data.quiz?.questions ?? []).map(() => null));
+      } catch {
+        if (live) setLoaded("error");
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [room, v, attempt]);
+
+  if (loaded === null)
+    return <p className="py-10 text-center text-muted">Loading the quiz...</p>;
+  if (loaded === "error")
+    return (
+      <div className="space-y-4">
+        <ErrorNote message="The quiz did not load. Check your connection." />
+        <button
+          type="button"
+          onClick={() => {
+            setLoaded(null);
+            setAttempt((n) => n + 1);
+          }}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-white px-4 font-semibold text-ink ring-1 ring-line transition-colors hover:bg-ink/[0.03]"
+        >
+          <RefreshCw aria-hidden className="size-5" />
+          Load the quiz again
+        </button>
+      </div>
+    );
+  const quiz = loaded.quiz;
+  if (!quiz)
+    return (
+      <p className="py-10 text-center text-muted">The quiz is off right now.</p>
+    );
+
+  const { personas, questions } = quiz;
+  const done = answers.filter(Boolean).length;
+  const complete = done === questions.length;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,62 +123,27 @@ export function QuizPanel({
     const res = await post<{ persona?: string }>(withRoom("/api/quiz", room), {
       answers,
     });
+    const ok = res.ok && typeof res.data.persona === "string";
     // Stay disabled until the refresh shows the persona from the server.
-    if (res.ok && isPersona(res.data.persona)) await refresh();
+    if (ok) await refresh();
     setSending(false);
-    if (!res.ok || !isPersona(res.data.persona)) {
-      setError(errorText(res.data, "Your answers did not go through."));
-    }
-  }
-
-  if (shown) {
-    return (
-      <div className="space-y-6">
-        <section
-          data-testid="quiz-result"
-          className="rounded-2xl bg-violet/[0.07] px-4 py-5"
-        >
-          <p className="font-heading text-3xl leading-tight font-bold text-violet">
-            {`You are ${/^[aeiou]/i.test(shown) ? "an" : "a"} ${shown}`}
-          </p>
-          <p className="mt-2 text-muted">
-            Your answer is in the room count below.
-          </p>
-        </section>
-        <section
-          data-testid="quiz-tally"
-          aria-labelledby="tally-heading"
-          className="space-y-3"
-        >
-          <h2 id="tally-heading" className="text-xl font-semibold">
-            The room so far
-          </h2>
-          <Bars
-            items={PERSONAS.map((p) => ({
-              key: p,
-              label: p,
-              value: tally?.[p] ?? 0,
-              highlight: p === shown,
-            }))}
-          />
-        </section>
-      </div>
-    );
+    if (!ok) setError(errorText(res.data, "Your answers did not go through."));
   }
 
   return (
     <form onSubmit={submit} className="space-y-6">
       <p className="text-muted">
-        Answer {QUIZ.length} short questions. Pick the answer that fits you
-        best.
+        {questions.length === 1
+          ? "Answer 1 short question. Pick the answer that fits you best."
+          : `Answer ${questions.length} short questions. Pick the answer that fits you best.`}
       </p>
-      {QUIZ.map((q, i) => (
-        <fieldset key={q.question} className="space-y-2">
-          <legend className="mb-2 font-heading text-lg leading-snug font-semibold">
-            <span className="text-muted">{`${i + 1}/${QUIZ.length} `}</span>
+      {questions.map((q, i) => (
+        <fieldset key={i} className="space-y-2">
+          <legend className="mb-2 font-heading text-lg leading-snug font-semibold break-words">
+            <span className="text-muted">{`${i + 1}/${questions.length} `}</span>
             {q.question}
           </legend>
-          {PERSONAS.map((p) => (
+          {personas.map((p) => (
             <label
               key={p}
               className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl bg-white px-3 py-2 ring-1 ring-line transition-colors has-checked:bg-violet/[0.07] has-checked:ring-2 has-checked:ring-violet"
@@ -106,11 +154,13 @@ export function QuizPanel({
                 value={p}
                 checked={answers[i] === p}
                 onChange={() =>
-                  setAnswers((a) => a.map((v, j) => (j === i ? p : v)))
+                  setAnswers((a) => a.map((x, j) => (j === i ? p : x)))
                 }
                 className="size-5 shrink-0 accent-violet"
               />
-              <span className="leading-snug">{q.answers[p]}</span>
+              <span className="min-w-0 leading-snug break-words">
+                {q.answers[p]}
+              </span>
             </label>
           ))}
         </fieldset>
@@ -125,7 +175,7 @@ export function QuizPanel({
       </button>
       {!complete && (
         <p className="-mt-3 text-center text-sm text-muted">
-          {answers.filter(Boolean).length} of {QUIZ.length} answered
+          {done} of {questions.length} answered
         </p>
       )}
     </form>

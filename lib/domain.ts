@@ -1,8 +1,3 @@
-import quiz from "@/data/quiz.json";
-
-// Personas come from data/quiz.json; their order breaks ties.
-export const PERSONAS: readonly string[] = quiz.personas;
-export type Persona = string;
 export type PollStatus = "open" | "closed" | "revealed";
 export type MediaType = "image" | "code" | "text" | "audio";
 export type PollKind = "choice" | "words";
@@ -61,13 +56,16 @@ export interface RoomSettings {
 export interface DeviceState {
   vote: string | null;
   upvoted: string[];
-  persona: Persona | null;
+  persona: string | null;
 }
 
 export interface RoomState {
   poll: PublicPoll | null;
   questions: Question[];
-  tally: Record<Persona, number>;
+  // Null when the room's quiz is off; phones fetch questions by version v.
+  quiz: { v: string; personas: string[] } | null;
+  // Count per persona of the room's quiz, in persona order.
+  tally: Record<string, number>;
   // Running totals since the last room reset.
   reactions: Record<Reaction, number>;
   // Bumped by room and quiz resets so phones refetch their device state.
@@ -99,23 +97,6 @@ const WORD_PATTERN = /^[\p{L}\p{M}\p{N}\u200C\u200D -]+$/u;
 const WORD_CHAR = /[\p{L}\p{N}]/u;
 // Upstash parses stored JSON, so "null" or "123" would not read back as text.
 export const WORD_VOTE_PREFIX = "w:";
-
-export const isPersona = (v: unknown): v is Persona =>
-  typeof v === "string" && PERSONAS.includes(v);
-
-/** Persona with the most answers; a tie goes to the earlier persona in PERSONAS. */
-export function scorePersona(
-  answers: unknown[],
-  expected: number,
-): Persona | null {
-  if (answers.length !== expected || !answers.every(isPersona)) return null;
-  const count = new Map<Persona, number>();
-  for (const a of answers) count.set(a, (count.get(a) ?? 0) + 1);
-  let best: Persona = PERSONAS[0];
-  for (const p of PERSONAS)
-    if ((count.get(p) ?? 0) > (count.get(best) ?? 0)) best = p;
-  return best;
-}
 
 export const isPollKind = (v: unknown): v is PollKind =>
   typeof v === "string" && POLL_KINDS.includes(v as PollKind);

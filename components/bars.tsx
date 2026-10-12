@@ -5,36 +5,44 @@ interface BarItem {
   highlight?: boolean;
 }
 
+// base: phones and admin. Projector: lg, or md for many or long labels.
+const SIZE = {
+  base: { list: "space-y-3", text: "text-base", bar: "h-3" },
+  md: { list: "space-y-4", text: "text-2xl", bar: "h-5" },
+  lg: { list: "space-y-5", text: "text-3xl", bar: "h-7" },
+};
+
 /** Horizontal result bars; fills slide when values change. */
 export function Bars({
   items,
-  large = false,
+  size = "base",
 }: {
   items: BarItem[];
-  large?: boolean;
+  size?: keyof typeof SIZE;
 }) {
+  const s = SIZE[size];
   const total = items.reduce((sum, i) => sum + i.value, 0);
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
-    <ul className={large ? "space-y-5" : "space-y-3"}>
+    <ul className={s.list}>
       {items.map((item) => {
         const pct = total ? Math.round((item.value / total) * 100) : 0;
         return (
           <li key={item.key}>
             <div
-              className={`flex items-baseline justify-between gap-3 ${large ? "text-3xl" : "text-base"}`}
+              className={`flex items-baseline justify-between gap-3 ${s.text}`}
             >
               <span
-                className={`font-semibold ${item.highlight ? "text-green" : "text-ink"}`}
+                className={`min-w-0 font-semibold break-words ${item.highlight ? "text-green" : "text-ink"}`}
               >
                 {item.label}
               </span>
-              <span className="tabular-nums text-muted">
+              <span className="shrink-0 tabular-nums text-muted">
                 {item.value} ({pct}%)
               </span>
             </div>
             <div
-              className={`mt-1.5 w-full overflow-hidden rounded-full bg-line ${large ? "h-7" : "h-3"}`}
+              className={`mt-1.5 w-full overflow-hidden rounded-full bg-line ${s.bar}`}
             >
               {/* translateX skips layout and keeps the round end; 0 fades out. */}
               <div

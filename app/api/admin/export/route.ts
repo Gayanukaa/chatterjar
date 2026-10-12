@@ -6,6 +6,7 @@ import {
   type RawQuestion,
 } from "@/lib/export";
 import { adminRoute, fail } from "@/lib/http";
+import { QUIZ_KEY, roomQuiz } from "@/lib/quiz";
 import { db, k } from "@/lib/redis";
 import { currentRoom } from "@/lib/room";
 
@@ -17,13 +18,15 @@ export const GET = adminRoute(async (req) => {
   if (format !== "json" && format !== "csv")
     return fail("Use format=json or format=csv.", 400);
   const r = db();
-  const [ids, texts, ranked, tally] = await r
+  const [ids, texts, ranked, tally, quizRaw] = await r
     .pipeline()
     .zrange(k("poll:ids"), 0, -1)
     .hgetall(k("q:text"))
     .zrange(k("q:rank"), 0, -1, { withScores: true })
     .hgetall(k("quiz:tally"))
-    .exec<[unknown[], Hash, unknown[], Hash]>();
+    .get(k(QUIZ_KEY))
+    .exec<[unknown[], Hash, unknown[], Hash, unknown]>();
+  const personas = roomQuiz(quizRaw).quiz?.personas ?? [];
 
   const pollIds = ids.map(String);
   const textMap = texts ?? {};
@@ -59,7 +62,14 @@ export const GET = adminRoute(async (req) => {
 
   const room = currentRoom();
   const now = Date.now();
-  const data = buildExport({ room, now, polls, questions, tally });
+  const data = buildExport({
+    room,
+    now,
+    polls,
+    questions,
+    personas,
+    tally,
+  });
   // BOM: Excel reads the CSV as UTF-8 only with it.
   const text =
     format === "csv" ? "\uFEFF" + toCsv(data) : JSON.stringify(data, null, 2);

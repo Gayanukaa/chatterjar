@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { post, request, withRoom, type ApiResult } from "@/lib/api";
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
 import type { packSummaries } from "@/lib/packs";
+import type { AdminQuiz } from "@/lib/quiz";
 import { POLL_MS } from "@/lib/use-room-state";
 
 export type AdminPoll = Poll & { votes: Record<string, number> };
@@ -16,6 +17,7 @@ interface AdminState {
   settings: RoomSettings;
   pending: PendingQuestion[];
   pendingTotal: number;
+  quiz: AdminQuiz;
 }
 
 const storeKey = (room: string) => `room-admin-key:${room}`;

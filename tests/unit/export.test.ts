@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PERSONAS, questionScore, type Poll } from "@/lib/domain";
+import { questionScore, type Poll } from "@/lib/domain";
 import {
   buildExport,
   createdAtFromId,
@@ -7,6 +7,9 @@ import {
   exportFilename,
   toCsv,
 } from "@/lib/export";
+import { STARTER } from "@/lib/quiz";
+
+const PERSONAS = STARTER.personas;
 
 const NOW = Date.UTC(2026, 9, 9, 12, 0, 0);
 const T1 = Date.UTC(2026, 9, 9, 10, 0, 0);
@@ -43,6 +46,7 @@ const sample = () =>
         hidden: true,
       },
     ],
+    personas: PERSONAS,
     tally: { [PERSONAS[0]]: 2 },
   });
 
@@ -78,6 +82,7 @@ describe("buildExport", () => {
       now: NOW,
       polls: [{ poll: words, votes: { planning: 3, tests: "5" } }],
       questions: [],
+      personas: PERSONAS,
       tally: null,
     });
     expect(data.polls[0].kind).toBe("words");
@@ -128,6 +133,17 @@ describe("buildExport", () => {
     expect(Object.keys(tally)).toEqual([...PERSONAS]);
     expect(tally[PERSONAS[0]]).toBe(2);
   });
+  it("uses the room personas and drops counts for others", () => {
+    const { tally } = buildExport({
+      room: "abc",
+      now: NOW,
+      polls: [],
+      questions: [],
+      personas: ["Owl", "Fox"],
+      tally: { Fox: "3", Idea: 9 },
+    }).quiz;
+    expect(tally).toEqual({ Owl: 0, Fox: 3 });
+  });
   it("falls back to the id time when no score is saved", () => {
     const id = `q${T1.toString(36)}ab12`;
     expect(createdAtFromId(id)).toBe(T1);
@@ -136,6 +152,7 @@ describe("buildExport", () => {
       now: NOW,
       polls: [],
       questions: [{ id, text: "x", score: null, hidden: true }],
+      personas: PERSONAS,
       tally: null,
     });
     expect(data.questions[0]).toMatchObject({ votes: 0, hidden: true });

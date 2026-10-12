@@ -113,12 +113,10 @@ export function AdminPage() {
             }}
           />
           <QuizPanel
-            tally={room.state?.tally ?? null}
-            onReset={async () => {
-              const res = await act("/api/admin/reset-quiz");
-              void room.refresh();
-              return res;
-            }}
+            quiz={data?.quiz ?? null}
+            shared={room.state}
+            act={act}
+            onDone={() => void room.refresh()}
           />
         </div>
       </div>

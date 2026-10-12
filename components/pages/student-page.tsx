@@ -29,12 +29,16 @@ export function StudentPage() {
   const { state, offline, missing, refresh } = useRoomState({ room });
   const [tab, setTab] = useState<TabId>("vote");
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  // The host can turn the quiz off; its tab then goes and Vote opens instead.
+  const quizOff = state?.quiz === null;
+  const tabs = quizOff ? TABS.filter((t) => t.id !== "quiz") : TABS;
+  if (quizOff && tab === "quiz") setTab("vote");
 
   function onTabKey(e: React.KeyboardEvent, i: number) {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     if (!step) return;
-    const next = (i + step + TABS.length) % TABS.length;
-    setTab(TABS[next].id);
+    const next = (i + step + tabs.length) % tabs.length;
+    setTab(tabs[next].id);
     tabRefs.current[next]?.focus();
   }
 
@@ -69,9 +73,9 @@ export function StudentPage() {
       <div
         role="tablist"
         aria-label="Room sections"
-        className="sticky top-0 z-10 grid grid-cols-3 border-b border-line bg-paper/95 px-2 backdrop-blur-sm"
+        className={`sticky top-0 z-10 grid border-b border-line bg-paper/95 px-2 backdrop-blur-sm ${quizOff ? "grid-cols-2" : "grid-cols-3"}`}
       >
-        {TABS.map(({ id, label, Icon }, i) => {
+        {tabs.map(({ id, label, Icon }, i) => {
           const active = tab === id;
           return (
             <button
@@ -103,7 +107,7 @@ export function StudentPage() {
         })}
       </div>
 
-      {TABS.map(({ id }) => (
+      {tabs.map(({ id }) => (
         <section
           key={id}
           role="tabpanel"
@@ -131,13 +135,14 @@ export function StudentPage() {
               upvoted={state.me.upvoted}
               refresh={refresh}
             />
-          ) : (
+          ) : state.quiz ? (
             <QuizPanel
+              quiz={state.quiz}
               persona={state.me.persona}
               tally={state.tally}
               refresh={refresh}
             />
-          )}
+          ) : null}
         </section>
       ))}
 

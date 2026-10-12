@@ -24,6 +24,7 @@ interface State {
     results?: Record<string, number>;
   } | null;
   questions: { id: string; text: string }[];
+  quiz: { v: string; personas: string[] } | null;
   tally: Record<string, number>;
   reactions: Record<string, number>;
 }
@@ -659,4 +660,81 @@ test("14. pages refuse to be framed by other sites", async ({ request }) => {
     );
     expect(res.headers()["x-frame-options"], path).toBe("DENY");
   }
+});
+
+test("15. admin edits the quiz, a phone answers it, off and on keep it", async ({
+  browser,
+  request,
+}) => {
+  // The quiz is room-wide and saving clears its answers: never on live data.
+  test.skip(Boolean(process.env.BASE_URL), "changes the room quiz");
+  // Unique names per run, so earlier runs cannot satisfy the checks.
+  const stamp = Date.now().toString(36);
+  const owl = `${TAG} Owl ${stamp}`;
+  const fox = `${TAG} Fox ${stamp}`;
+  const questions = [1, 2].map((n) => ({
+    question: `${TAG} quiz question ${n} ${stamp}`,
+    answers: { [owl]: `Owl answer ${n}`, [fox]: `Fox answer ${n}` },
+  }));
+  try {
+    const saved = await admin(request, "/api/admin/quiz", {
+      action: "save",
+      quiz: { personas: [owl, fox], questions },
+    });
+    expect(saved.quiz.mode).toBe("custom");
+    const def = await request.get(`/api/room/quiz?v=${saved.quiz.v}`);
+    expect((await def.json()).quiz.personas).toEqual([owl, fox]);
+
+    const { page } = await device(browser);
+    await openTab(page, "Quiz");
+    const sets = page.locator("fieldset").filter({ visible: true });
+    await expect(sets).toHaveCount(2);
+    for (const [i, q] of questions.entries()) {
+      await expect(sets.nth(i)).toContainText(q.question);
+      await sets.nth(i).getByText(q.answers[fox]).click();
+      await expect(
+        sets.nth(i).getByRole("radio", { name: q.answers[fox] }),
+      ).toBeChecked();
+    }
+    await page.getByRole("button", { name: "See my persona" }).click();
+    await expect(page.getByTestId("quiz-result")).toContainText(fox);
+    // Saving cleared the tally, so this phone is the only answer.
+    await expect
+      .poll(async () => (await getState(request)).tally)
+      .toEqual({ [owl]: 0, [fox]: 1 });
+
+    const screen = await device(browser, "/screen");
+    await expect(screen.page.getByTestId("screen-tally")).toContainText(fox);
+
+    await admin(request, "/api/admin/quiz", { action: "off" });
+    await expect(page.getByRole("tab", { name: "Quiz" })).toHaveCount(0);
+    await expect(page.getByRole("tab", { name: "Vote" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(screen.page.getByTestId("screen-tally")).toHaveCount(0);
+    await expect(screen.page.getByTestId("screen-qr")).toBeVisible();
+    const off = await page.request.post("/api/quiz", {
+      data: { answers: [fox, fox] },
+    });
+    expect(off.status()).toBe(409);
+    expect((await off.json()).error).toBe("The quiz is off.");
+
+    // Off is a flag: turning the quiz on brings the custom quiz back.
+    const on = await admin(request, "/api/admin/quiz", { action: "on" });
+    expect(on.quiz.mode).toBe("custom");
+    await expect
+      .poll(async () => (await getState(request)).quiz?.personas)
+      .toEqual([owl, fox]);
+    await openTab(page, "Quiz");
+    await expect(sets).toHaveCount(2);
+    await expect(sets.first()).toContainText(questions[0].question);
+    await expect(screen.page.getByTestId("screen-tally")).toContainText(fox);
+  } finally {
+    // Later tests and runs expect the starter quiz.
+    await admin(request, "/api/admin/quiz", { action: "starter" });
+  }
+  await expect
+    .poll(async () => (await getState(request)).quiz?.v)
+    .toBe("starter");
 });
