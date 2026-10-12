@@ -18,7 +18,7 @@ Live polls, a question wall and a quiz for talks, classes and conferences. Peopl
 
 - Choice and word cloud polls. Results stay hidden until you reveal them.
 - An anonymous question wall with upvotes, a review queue and a limit of 3 questions per minute.
-- A persona quiz with a live room tally, and live reactions.
+- A persona quiz each room can edit or turn off, with a live room tally, and live reactions.
 - A projector view (`/screen`) with a join QR code and a dark theme.
 - One admin page to run polls, load content packs and export CSV or JSON.
 - Invite-only rooms, each with its own admin link.
