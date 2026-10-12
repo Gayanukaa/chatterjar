@@ -5,9 +5,10 @@ import {
   adminQuiz,
   checkQuiz,
   nextStored,
-  parseQuiz,
+  PERSONA_PREFIX,
   roomQuiz,
   scorePersona,
+  storedPersona,
   tallyFor,
   type Quiz,
 } from "@/lib/quiz";
@@ -23,9 +24,24 @@ const small: Quiz = {
   ],
 };
 
-describe("parseQuiz", () => {
+/** The quiz when valid, else null. */
+function parse(raw: unknown) {
+  const quiz = checkQuiz(raw);
+  return typeof quiz === "string" ? null : quiz;
+}
+
+// Upstash JSON-parses every value it reads and keeps the text if that fails.
+const upstash = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+describe("checkQuiz", () => {
   it("accepts a valid quiz and trims its text", () => {
-    const quiz = parseQuiz({
+    const quiz = parse({
       personas: [" Owl ", "Fox"],
       questions: [{ question: " Q? ", answers: { " Owl": " a ", Fox: "b" } }],
     });
@@ -33,10 +49,22 @@ describe("parseQuiz", () => {
       personas: ["Owl", "Fox"],
       questions: [{ question: "Q?", answers: { Owl: "a", Fox: "b" } }],
     });
-    expect(parseQuiz(STARTER)).toEqual(STARTER);
+    expect(parse(STARTER)).toEqual(STARTER);
+  });
+  it("rejects __proto__ as a persona in any case", () => {
+    for (const name of ["__proto__", "__PROTO__", " __Proto__ "])
+      expect(checkQuiz({ ...small, personas: [name, "Fox", "Bee"] })).toBe(
+        "Give each persona a name other than __proto__.",
+      );
+  });
+  it("accepts names Upstash would parse as JSON", () => {
+    const personas = ["null", '"x"', "[1]"];
+    const answers = { null: "a", '"x"': "b", "[1]": "c" };
+    const quiz = parse({ personas, questions: [{ question: "Q", answers }] });
+    expect(quiz?.personas).toEqual(personas);
   });
   it("rejects too few or too many personas", () => {
-    expect(parseQuiz({ ...small, personas: ["Owl"] })).toBeNull();
+    expect(parse({ ...small, personas: ["Owl"] })).toBeNull();
     const seven = ["a", "b", "c", "d", "e", "f", "g"];
     expect(checkQuiz({ ...small, personas: seven })).toBe(
       "Add 2 to 6 personas.",
@@ -57,14 +85,14 @@ describe("parseQuiz", () => {
       ...small,
       questions: [{ question: "Q", answers: { Owl: "a", Fox: " ", Bee: "c" } }],
     };
-    expect(parseQuiz(empty)).toBeNull();
+    expect(parse(empty)).toBeNull();
     const extra = {
       ...small,
       questions: [
         { question: "Q", answers: { Owl: "a", Fox: "b", Bee: "c", Cat: "d" } },
       ],
     };
-    expect(parseQuiz(extra)).toBeNull();
+    expect(parse(extra)).toBeNull();
   });
   it("rejects text that is too long and question counts out of range", () => {
     expect(
@@ -78,14 +106,14 @@ describe("parseQuiz", () => {
       question: "Q",
       answers: { Owl: "a".repeat(101), Fox: "b", Bee: "c" },
     };
-    expect(parseQuiz({ ...small, questions: [longA] })).toBeNull();
+    expect(parse({ ...small, questions: [longA] })).toBeNull();
     expect(checkQuiz({ ...small, questions: [] })).toBe(
       "Add 1 to 8 questions.",
     );
     const nine = Array.from({ length: 9 }, () => small.questions[0]);
-    expect(parseQuiz({ ...small, questions: nine })).toBeNull();
-    expect(parseQuiz(null)).toBeNull();
-    expect(parseQuiz("quiz")).toBeNull();
+    expect(parse({ ...small, questions: nine })).toBeNull();
+    expect(parse(null)).toBeNull();
+    expect(parse("quiz")).toBeNull();
   });
 });
 
@@ -121,7 +149,6 @@ describe("roomQuiz", () => {
       mode: "starter",
       quiz: STARTER,
       v: "starter",
-      hasCustom: false,
     });
   });
   it("is off with no custom quiz for the off marker", () => {
@@ -129,7 +156,6 @@ describe("roomQuiz", () => {
       mode: "off",
       quiz: null,
       v: "off",
-      hasCustom: false,
     });
   });
   it("reads a custom quiz as an object or as JSON text", () => {
@@ -137,7 +163,6 @@ describe("roomQuiz", () => {
       mode: "custom",
       quiz: small,
       v: "1760000000000",
-      hasCustom: true,
     };
     expect(roomQuiz({ ...small, v: 1760000000000 })).toEqual(want);
     expect(roomQuiz(JSON.stringify(saved))).toEqual(want);
@@ -149,7 +174,6 @@ describe("roomQuiz", () => {
       mode: "off",
       quiz: null,
       v: "off-1760000000000",
-      hasCustom: true,
     });
     expect(quiz.v).not.toBe(roomQuiz(saved).v);
     expect(adminQuiz(off).saved).toEqual({ ...small, v: saved.v, off: true });
@@ -199,5 +223,21 @@ describe("tallyFor", () => {
     });
     expect(tallyFor(["constructor"], {})).toEqual({ constructor: 0 });
     expect(tallyFor(["Owl"], null)).toEqual({ Owl: 0 });
+  });
+});
+
+describe("storedPersona", () => {
+  it("reads prefixed names back as the same text", () => {
+    for (const name of ["null", '"x"', "[1]", "2024", "true", "Idea"]) {
+      expect(storedPersona(upstash(PERSONA_PREFIX + name))).toBe(name);
+    }
+    // Without the prefix these would come back as other values.
+    expect(upstash("null")).toBeNull();
+    expect(upstash('"x"')).toBe("x");
+  });
+  it("reads old values without a prefix and missing values", () => {
+    expect(storedPersona("Idea")).toBe("Idea");
+    expect(storedPersona(null)).toBeNull();
+    expect(storedPersona(undefined)).toBeNull();
   });
 });

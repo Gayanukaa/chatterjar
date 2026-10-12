@@ -8,7 +8,7 @@ import { useRoom } from "@/components/room";
 import type { Quiz } from "@/lib/quiz";
 import { ErrorNote, errorText } from "./error-note";
 
-type Loaded = { quiz: Quiz | null } | "error" | null;
+type Loaded = { v: string; quiz: Quiz | null } | "error" | null;
 
 /** Room persona quiz; after it, the persona and the room tally. */
 export function QuizPanel({
@@ -22,8 +22,10 @@ export function QuizPanel({
   tally: Record<string, number> | null;
   refresh: () => Promise<void>;
 }) {
-  // me.persona is never cached, so a room reset clears it here too.
-  if (!persona) return <QuizForm key={quiz.v} v={quiz.v} refresh={refresh} />;
+  // me.persona is never cached, so a room reset clears it here too; one from
+  // an older quiz in this room does not count.
+  const mine = persona && quiz.personas.includes(persona) ? persona : null;
+  if (!mine) return <QuizForm key={quiz.v} v={quiz.v} refresh={refresh} />;
   return (
     <div className="space-y-6">
       <section
@@ -31,7 +33,7 @@ export function QuizPanel({
         className="rounded-2xl bg-violet/[0.07] px-4 py-5"
       >
         <p className="font-heading text-3xl leading-tight font-bold text-violet">
-          {`You are ${/^[aeiou]/i.test(persona) ? "an" : "a"} ${persona}`}
+          {`You are ${/^[aeiou]/i.test(mine) ? "an" : "a"} ${mine}`}
         </p>
         <p className="mt-2 text-muted">
           Your answer is in the room count below.
@@ -50,7 +52,7 @@ export function QuizPanel({
             key: p,
             label: p,
             value: tally?.[p] ?? 0,
-            highlight: p === persona,
+            highlight: p === mine,
           }))}
         />
       </section>
@@ -70,13 +72,17 @@ function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
   useEffect(() => {
     let live = true;
     (async () => {
-      const url = withRoom(`/api/room/quiz?v=${encodeURIComponent(v)}`, room);
+      // Retries add t= to skip the CDN copy of this version.
+      const bust = attempt ? `&t=${Date.now()}` : "";
+      const path = `/api/room/quiz?v=${encodeURIComponent(v)}${bust}`;
       try {
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(withRoom(path, room), { cache: "no-store" });
         if (!res.ok) throw new Error(String(res.status));
-        const data: { quiz: Quiz | null } = await res.json();
+        const data: { v: string; quiz: Quiz | null } = await res.json();
         if (!live) return;
-        setLoaded({ quiz: data.quiz });
+        // Another version than asked for: fetch once more past the CDN.
+        if (data.v !== v && !attempt) return setAttempt(1);
+        setLoaded({ v: data.v, quiz: data.quiz });
         setAnswers((data.quiz?.questions ?? []).map(() => null));
       } catch {
         if (live) setLoaded("error");
@@ -106,7 +112,7 @@ function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
         </button>
       </div>
     );
-  const quiz = loaded.quiz;
+  const { quiz } = loaded;
   if (!quiz)
     return (
       <p className="py-10 text-center text-muted">The quiz is off right now.</p>
@@ -122,12 +128,20 @@ function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
     setError(null);
     const res = await post<{ persona?: string }>(withRoom("/api/quiz", room), {
       answers,
+      v: loaded && loaded !== "error" ? loaded.v : v,
     });
     const ok = res.ok && typeof res.data.persona === "string";
     // Stay disabled until the refresh shows the persona from the server.
     if (ok) await refresh();
     setSending(false);
-    if (!ok) setError(errorText(res.data, "Your answers did not go through."));
+    if (ok) return;
+    setError(errorText(res.data, "Your answers did not go through."));
+    // 409: the quiz changed or went off, so load what the room has now.
+    if (res.status === 409) {
+      setLoaded(null);
+      setAttempt((n) => n + 1);
+      void refresh();
+    }
   }
 
   return (
@@ -139,7 +153,7 @@ function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
       </p>
       {questions.map((q, i) => (
         <fieldset key={i} className="space-y-2">
-          <legend className="mb-2 font-heading text-lg leading-snug font-semibold break-words">
+          <legend className="mb-2 font-heading text-lg leading-snug font-semibold wrap-anywhere">
             <span className="text-muted">{`${i + 1}/${questions.length} `}</span>
             {q.question}
           </legend>
@@ -158,7 +172,7 @@ function QuizForm({ v, refresh }: { v: string; refresh: () => Promise<void> }) {
                 }
                 className="size-5 shrink-0 accent-violet"
               />
-              <span className="min-w-0 leading-snug break-words">
+              <span className="min-w-0 leading-snug wrap-anywhere">
                 {q.answers[p]}
               </span>
             </label>

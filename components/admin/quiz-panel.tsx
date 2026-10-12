@@ -9,7 +9,7 @@ import {
   Undo2,
   X,
 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Bars } from "@/components/bars";
 import type { ApiResult } from "@/lib/api";
 import type { RoomState } from "@/lib/domain";
@@ -84,7 +84,7 @@ export function QuizPanel({
     return res;
   }
 
-  const kept = quiz?.hasCustom ? "your custom quiz" : "the starter quiz";
+  const kept = quiz?.saved ? "your custom quiz" : "the starter quiz";
 
   return (
     <Section
@@ -169,7 +169,7 @@ export function QuizPanel({
                 </Button>
               )}
             </div>
-            {quiz?.hasCustom && (
+            {quiz?.saved && (
               <Button
                 onClick={() =>
                   go(
@@ -266,6 +266,32 @@ function QuizEditor({
   const [draft, setDraft] = useState(() => toDraft(initial));
   const { busy, error, run } = useAction();
   const { personas, questions } = draft;
+  // Element id to focus after a remove, once the row is gone from the DOM.
+  const focusNext = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!focusNext.current) return;
+    document.getElementById(focusNext.current)?.focus();
+    focusNext.current = null;
+  });
+
+  function removePersona(i: number) {
+    const next = personas[i + 1];
+    focusNext.current = next ? `persona-${next.id}` : "add-persona";
+    setDraft((d) => ({
+      ...d,
+      personas: d.personas.filter((x) => x.id !== personas[i].id),
+    }));
+  }
+
+  function removeQuestion(i: number) {
+    const next = questions[i + 1];
+    focusNext.current = next ? `question-${next.id}` : "add-question";
+    setDraft((d) => ({
+      ...d,
+      questions: d.questions.filter((x) => x.id !== questions[i].id),
+    }));
+  }
 
   const setPersona = (id: number, name: string) =>
     setDraft((d) => ({
@@ -318,12 +344,7 @@ function QuizEditor({
             <Button
               aria-label={`Remove persona ${i + 1}`}
               title="Remove persona"
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  personas: d.personas.filter((x) => x.id !== p.id),
-                }))
-              }
+              onClick={() => removePersona(i)}
               disabled={personas.length <= MIN_PERSONAS}
               className="w-12 shrink-0 px-0"
             >
@@ -332,6 +353,7 @@ function QuizEditor({
           </div>
         ))}
         <Button
+          id="add-persona"
           onClick={() =>
             setDraft((d) => ({
               ...d,
@@ -346,24 +368,23 @@ function QuizEditor({
       </fieldset>
 
       {questions.map((q, i) => (
-        <fieldset key={q.id} className="grid gap-3 border-t border-line pt-4">
-          <legend className="float-left flex w-full items-center justify-between gap-3 font-semibold">
+        <fieldset
+          key={q.id}
+          className="relative grid gap-3 border-t border-line pt-4"
+        >
+          {/* Button beside, not inside, the legend: the group name stays short. */}
+          <legend className="float-left flex min-h-12 w-[calc(100%-3.5rem)] items-center font-semibold">
             Question {i + 1}
-            <Button
-              aria-label={`Remove question ${i + 1}`}
-              title="Remove question"
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  questions: d.questions.filter((x) => x.id !== q.id),
-                }))
-              }
-              disabled={questions.length <= 1}
-              className="w-12 shrink-0 px-0"
-            >
-              <X aria-hidden />
-            </Button>
           </legend>
+          <Button
+            aria-label={`Remove question ${i + 1}`}
+            title="Remove question"
+            onClick={() => removeQuestion(i)}
+            disabled={questions.length <= 1}
+            className="absolute top-4 right-0 w-12 px-0"
+          >
+            <X aria-hidden />
+          </Button>
           <div className="grid gap-1.5">
             <label htmlFor={`question-${q.id}`} className="text-sm">
               Question
@@ -382,7 +403,7 @@ function QuizEditor({
             <div key={p.id} className="grid gap-1.5">
               <label
                 htmlFor={`answer-${q.id}-${p.id}`}
-                className="text-sm break-words"
+                className="text-sm wrap-anywhere"
               >
                 Answer for {p.name.trim() || `persona ${j + 1}`}
               </label>
@@ -404,6 +425,7 @@ function QuizEditor({
         </fieldset>
       ))}
       <Button
+        id="add-question"
         onClick={() =>
           setDraft((d) => ({
             ...d,

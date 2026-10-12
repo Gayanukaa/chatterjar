@@ -9,7 +9,7 @@ import {
   type Question,
   type RoomState,
 } from "./domain";
-import { QUIZ_KEY, roomQuiz, tallyFor } from "./quiz";
+import { QUIZ_KEY, roomQuiz, storedPersona, tallyFor } from "./quiz";
 import { db, k } from "./redis";
 import { currentRoom } from "./room";
 
@@ -106,19 +106,14 @@ export async function deviceState(
   if (!rid) return NO_DEVICE;
   const p = db().pipeline();
   if (pollId) p.hget(k(`poll:${pollId}:voters`), rid);
-  p.smembers(k(`qv:${rid}`))
-    .hget(k("quiz:who"), rid)
-    .get(k(QUIZ_KEY));
+  p.smembers(k(`qv:${rid}`)).hget(k("quiz:who"), rid);
   const out = await p.exec<unknown[]>();
   const vote = pollId ? out.shift() : null;
-  const [upvoted, saved, quizRaw] = out;
-  // Upstash parses "2024" as a number, so compare the persona as text.
-  const persona = saved == null ? null : String(saved);
-  // A persona from an older quiz in this room no longer counts.
-  const personas = roomQuiz(quizRaw).quiz?.personas ?? [];
+  const [upvoted, persona] = out;
+  // Phones match the persona against the room personas in shared state.
   return {
     vote: storedVote(vote),
     upvoted: Array.isArray(upvoted) ? upvoted.map(String) : [],
-    persona: persona && personas.includes(persona) ? persona : null,
+    persona: storedPersona(persona),
   };
 }

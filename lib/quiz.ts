@@ -18,8 +18,6 @@ export interface RoomQuiz {
   mode: QuizMode;
   quiz: Quiz | null;
   v: string;
-  // True when a custom quiz is stored, so "on" brings it back.
-  hasCustom: boolean;
 }
 
 /** Custom quiz as stored: v is its save time; off hides it from phones. */
@@ -38,6 +36,8 @@ export const MAX_PERSONA = 24;
 export const MAX_QUIZ_QUESTIONS = 8;
 export const MAX_QUIZ_QUESTION = 160;
 export const MAX_ANSWER = 100;
+// Upstash parses stored JSON, so "null" or "[1]" would not read back as text.
+export const PERSONA_PREFIX = "p:";
 
 const text = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
@@ -51,6 +51,9 @@ export function checkQuiz(raw: unknown): Quiz | string {
   const personas = list.map(text);
   if (personas.some((p) => !p || p.length > MAX_PERSONA))
     return `Give each persona a name of 1 to ${MAX_PERSONA} characters.`;
+  // Upstash builds hashes as plain objects, where __proto__ is not a key.
+  if (personas.some((p) => p.toLowerCase() === "__proto__"))
+    return "Give each persona a name other than __proto__.";
   // Case-blind, so "Idea" and "idea" do not show as two bars.
   if (new Set(personas.map((p) => p.toLowerCase())).size !== personas.length)
     return "Give each persona a different name.";
@@ -65,26 +68,19 @@ export function checkQuiz(raw: unknown): Quiz | string {
     const given = row?.answers;
     const entries =
       given && typeof given === "object" ? Object.entries(given) : [];
+    const bad = `Question ${i + 1}: write an answer of 1 to ${MAX_ANSWER} characters for each persona.`;
+    if (entries.length !== personas.length) return bad;
     const answers = Object.fromEntries(
       entries.map(([key, v]) => [key.trim(), text(v)]),
     );
-    const fits =
-      entries.length === personas.length &&
-      personas.every((p) => {
-        const a = Object.hasOwn(answers, p) ? answers[p] : "";
-        return a && a.length <= MAX_ANSWER;
-      });
-    if (!fits)
-      return `Question ${i + 1}: write an answer of 1 to ${MAX_ANSWER} characters for each persona.`;
+    const fits = personas.every((p) => {
+      const a = Object.hasOwn(answers, p) ? answers[p] : "";
+      return a && a.length <= MAX_ANSWER;
+    });
+    if (!fits) return bad;
     questions.push({ question, answers });
   }
   return { personas, questions };
-}
-
-/** Valid quiz with trimmed text, or null; checkQuiz names the problem. */
-export function parseQuiz(raw: unknown): Quiz | null {
-  const quiz = checkQuiz(raw);
-  return typeof quiz === "string" ? null : quiz;
 }
 
 /** Custom quiz from the stored quiz:def value, or null for any other value. */
@@ -97,10 +93,11 @@ export function storedCustom(stored: unknown): StoredQuiz | null {
       return null;
     }
   }
-  const quiz = parseQuiz(value);
+  const quiz = checkQuiz(value);
   const meta = value as { v?: unknown; off?: unknown } | null;
   const v = meta?.v;
-  if (!quiz || (typeof v !== "number" && typeof v !== "string")) return null;
+  if (typeof quiz === "string") return null;
+  if (typeof v !== "number" && typeof v !== "string") return null;
   return meta?.off === true
     ? { ...quiz, v: String(v), off: true }
     : { ...quiz, v: String(v) };
@@ -112,12 +109,11 @@ export function roomQuiz(stored: unknown): RoomQuiz {
   if (custom) {
     const { personas, questions, v } = custom;
     return custom.off
-      ? { mode: "off", quiz: null, v: `off-${v}`, hasCustom: true }
-      : { mode: "custom", quiz: { personas, questions }, v, hasCustom: true };
+      ? { mode: "off", quiz: null, v: `off-${v}` }
+      : { mode: "custom", quiz: { personas, questions }, v };
   }
-  if (stored === QUIZ_OFF)
-    return { mode: "off", quiz: null, v: QUIZ_OFF, hasCustom: false };
-  return { mode: "starter", quiz: STARTER, v: "starter", hasCustom: false };
+  if (stored === QUIZ_OFF) return { mode: "off", quiz: null, v: QUIZ_OFF };
+  return { mode: "starter", quiz: STARTER, v: "starter" };
 }
 
 /** New quiz:def value after off, on or starter; null deletes the key. */
@@ -168,3 +164,12 @@ export const adminQuiz = (stored: unknown): AdminQuiz => ({
   ...roomQuiz(stored),
   saved: storedCustom(stored),
 });
+
+/** Persona from a quiz:who value; old values have no prefix. */
+export function storedPersona(raw: unknown): string | null {
+  if (raw == null) return null;
+  const persona = String(raw);
+  return persona.startsWith(PERSONA_PREFIX)
+    ? persona.slice(PERSONA_PREFIX.length)
+    : persona;
+}
