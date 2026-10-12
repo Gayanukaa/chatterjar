@@ -8,7 +8,6 @@ import {
   publicPoll,
   topWords,
   questionScore,
-  scorePersona,
   storedVote,
   validateQuestion,
   votesFromScore,
@@ -27,28 +26,6 @@ const poll: Poll = {
   status: "open",
   createdAt: 1,
 };
-
-describe("scorePersona", () => {
-  it("picks the persona with most answers", () => {
-    expect(
-      scorePersona(["Builder", "Builder", "Idea", "Developer", "Builder"], 5),
-    ).toBe("Builder");
-  });
-  it("breaks a tie by list order", () => {
-    expect(
-      scorePersona(
-        ["Developer", "Developer", "Researcher", "Researcher", "Idea"],
-        5,
-      ),
-    ).toBe("Researcher");
-  });
-  it("rejects incomplete or unknown answers", () => {
-    expect(scorePersona(["Idea"], 5)).toBeNull();
-    expect(
-      scorePersona(["Idea", "Idea", "Idea", "Idea", "Hacker"], 5),
-    ).toBeNull();
-  });
-});
 
 describe("publicPoll", () => {
   it("hides the answer and results before reveal", () => {

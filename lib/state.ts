@@ -1,17 +1,15 @@
 import {
-  PERSONAS,
   createdAtFromScore,
-  isPersona,
   publicPoll,
   reactionTotals,
   storedVote,
   votesFromScore,
   type DeviceState,
-  type Persona,
   type Poll,
   type Question,
   type RoomState,
 } from "./domain";
+import { QUIZ_KEY, roomQuiz, storedPersona, tallyFor } from "./quiz";
 import { db, k } from "./redis";
 import { currentRoom } from "./room";
 
@@ -29,25 +27,22 @@ export function invalidate() {
   cache.delete(currentRoom());
 }
 
-function fullTally(raw: Hash): Record<Persona, number> {
-  const entries = PERSONAS.map((p) => [p, Number(raw?.[p] ?? 0)]);
-  return Object.fromEntries(entries) as Record<Persona, number>;
-}
-
-/** State every phone shares: poll, top questions, tally, reactions, epoch. */
+/** State every phone shares: poll, questions, quiz, tally, reactions, epoch. */
 export async function sharedState(): Promise<SharedState> {
   const room = currentRoom();
   const hit = cache.get(room);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data;
   const r = db();
-  const [activeRaw, ranked, tally, epoch, reactions] = await r
+  const [activeRaw, ranked, tally, epoch, reactions, quizRaw] = await r
     .pipeline()
     .get(k("poll:active"))
     .zrange(k("q:rank"), 0, TOP_QUESTIONS - 1, { rev: true, withScores: true })
     .hgetall(k("quiz:tally"))
     .get(k("room:epoch"))
     .hgetall(k("reactions"))
+    .get(k(QUIZ_KEY))
     .exec<unknown[]>();
+  const { quiz, v } = roomQuiz(quizRaw);
   const activeId = activeRaw == null ? null : String(activeRaw);
 
   const flat = (ranked as unknown[]) ?? [];
@@ -94,7 +89,8 @@ export async function sharedState(): Promise<SharedState> {
       ? publicPoll(poll, (votes ?? {}) as Record<string, number>)
       : null,
     questions,
-    tally: fullTally(tally as Hash),
+    quiz: quiz ? { v, personas: quiz.personas } : null,
+    tally: tallyFor(quiz?.personas ?? [], tally as Hash),
     epoch: Number(epoch ?? 0),
     reactions: reactionTotals(reactions as Hash),
   };
@@ -102,7 +98,7 @@ export async function sharedState(): Promise<SharedState> {
   return data;
 }
 
-/** This device's vote on pollId, its upvotes and quiz persona: one round trip. */
+/** This device's vote on pollId, upvotes and quiz persona: one round trip. */
 export async function deviceState(
   rid: string | null,
   pollId: string | null,
@@ -114,9 +110,10 @@ export async function deviceState(
   const out = await p.exec<unknown[]>();
   const vote = pollId ? out.shift() : null;
   const [upvoted, persona] = out;
+  // Phones match the persona against the room personas in shared state.
   return {
     vote: storedVote(vote),
     upvoted: Array.isArray(upvoted) ? upvoted.map(String) : [],
-    persona: isPersona(persona) ? persona : null,
+    persona: storedPersona(persona),
   };
 }

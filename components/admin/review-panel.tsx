@@ -108,10 +108,7 @@ export function ReviewPanel({
                         {isReason(q.flagged) ? REASONS[q.flagged] : "Flagged"}
                       </span>
                     )}
-                    <p
-                      id={`pending-${q.id}`}
-                      className="min-w-0 wrap-break-word"
-                    >
+                    <p id={`pending-${q.id}`} className="min-w-0 wrap-anywhere">
                       {q.text}
                     </p>
                   </div>

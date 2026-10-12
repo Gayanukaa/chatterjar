@@ -189,7 +189,7 @@ export function PollList({
                                 {o.key}
                               </span>
                             )}
-                            <span className="min-w-0 flex-1 wrap-break-word">
+                            <span className="min-w-0 flex-1 wrap-anywhere">
                               {text}
                               {o.media && (
                                 <span className="text-muted">

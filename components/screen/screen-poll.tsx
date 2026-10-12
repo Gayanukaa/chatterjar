@@ -119,7 +119,7 @@ function Results({ poll }: { poll: PublicPoll }) {
   }));
   return (
     <div data-testid="screen-results" className="max-w-[56rem]">
-      <Bars items={items} large />
+      <Bars items={items} size="lg" />
       {poll.correct && (
         <p className="mt-8 flex items-center gap-3 font-heading text-4xl font-semibold text-green">
           <CircleCheck aria-hidden className="size-10 shrink-0" />

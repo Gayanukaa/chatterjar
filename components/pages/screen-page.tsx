@@ -35,8 +35,16 @@ export function ScreenPage({ initialTheme }: { initialTheme?: ScreenTheme }) {
             <div className="min-h-0 overflow-hidden lg:border-l lg:border-line lg:pl-10">
               <ScreenQuestions questions={state.questions} />
             </div>
-            <div className="flex min-h-0 flex-col justify-between gap-8 lg:border-l lg:border-line lg:pl-10">
-              <ScreenTally tally={state.tally} />
+            {/* With the quiz off the QR card stays at the bottom by itself. */}
+            <div
+              className={`flex min-h-0 flex-col gap-8 lg:border-l lg:border-line lg:pl-10 ${state.quiz ? "justify-between" : "justify-end"}`}
+            >
+              {state.quiz && (
+                <ScreenTally
+                  personas={state.quiz.personas}
+                  tally={state.tally}
+                />
+              )}
               <JoinQr />
             </div>
           </>

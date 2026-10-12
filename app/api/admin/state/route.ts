@@ -1,21 +1,23 @@
 import type { PendingQuestion, Poll, RoomSettings } from "@/lib/domain";
 import { adminRoute, json } from "@/lib/http";
 import { packSummaries } from "@/lib/packs";
+import { QUIZ_KEY, adminQuiz } from "@/lib/quiz";
 import { db, k } from "@/lib/redis";
 
 const MAX_PENDING = 50;
 
-/** Polls (newest first, with votes and answers), settings and pending questions. */
+/** Polls (newest first, with votes and answers), settings, review queue, quiz. */
 export const GET = adminRoute(async () => {
   const r = db();
-  const [activeId, ids, moderate, queued, pendingTotal] = await r
+  const [activeId, ids, moderate, queued, pendingTotal, quizRaw] = await r
     .pipeline()
     .get<string>(k("poll:active"))
     .zrange(k("poll:ids"), 0, -1, { rev: true })
     .hget(k("settings"), "moderate")
     .zrange(k("q:pending"), 0, MAX_PENDING - 1, { rev: true, withScores: true })
     .zcard(k("q:pending"))
-    .exec<[string | null, unknown[], unknown, unknown[], number]>();
+    .get(k(QUIZ_KEY))
+    .exec<[string | null, unknown[], unknown, unknown[], number, unknown]>();
   const settings: RoomSettings = { moderate: Number(moderate) === 1 };
   const list = ids.map(String);
   const flat = queued ?? [];
@@ -59,5 +61,6 @@ export const GET = adminRoute(async () => {
     settings,
     pending,
     pendingTotal: Number(pendingTotal) || 0,
+    quiz: adminQuiz(quizRaw),
   });
 });

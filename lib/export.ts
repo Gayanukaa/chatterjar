@@ -1,11 +1,10 @@
 import {
-  PERSONAS,
   createdAtFromScore,
   kindOf,
   votesFromScore,
-  type Persona,
   type Poll,
 } from "./domain";
+import { tallyFor } from "./quiz";
 
 type ExportFormat = "json" | "csv";
 export type SessionExport = ReturnType<typeof buildExport>;
@@ -24,12 +23,13 @@ export function createdAtFromId(id: string): number {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-/** Export document: polls oldest first, questions oldest first, full tally. */
+/** Export document: polls and questions oldest first, tally per room persona. */
 export function buildExport(input: {
   room: string;
   now: number;
   polls: { poll: Poll; votes: Record<string, unknown> | null }[];
   questions: RawQuestion[];
+  personas: readonly string[];
   tally: Record<string, unknown> | null;
 }) {
   const polls = input.polls.map(({ poll, votes }) => {
@@ -64,9 +64,7 @@ export function buildExport(input: {
     }))
     .sort((a, b) => a.at - b.at)
     .map(({ at, ...q }) => ({ ...q, createdAt: new Date(at).toISOString() }));
-  const tally = Object.fromEntries(
-    PERSONAS.map((p) => [p, Number(input.tally?.[p] ?? 0)]),
-  ) as Record<Persona, number>;
+  const tally = tallyFor(input.personas, input.tally);
   return {
     room: input.room,
     exportedAt: new Date(input.now).toISOString(),

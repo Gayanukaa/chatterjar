@@ -1,0 +1,243 @@
+import { describe, expect, it } from "vitest";
+import {
+  QUIZ_OFF,
+  STARTER,
+  adminQuiz,
+  checkQuiz,
+  nextStored,
+  PERSONA_PREFIX,
+  roomQuiz,
+  scorePersona,
+  storedPersona,
+  tallyFor,
+  type Quiz,
+} from "@/lib/quiz";
+
+const small: Quiz = {
+  personas: ["Owl", "Fox", "Bee"],
+  questions: [
+    {
+      question: "Morning?",
+      answers: { Owl: "Late", Fox: "Early", Bee: "Busy" },
+    },
+    { question: "Snack?", answers: { Owl: "Tea", Fox: "Fruit", Bee: "Honey" } },
+  ],
+};
+
+/** The quiz when valid, else null. */
+function parse(raw: unknown) {
+  const quiz = checkQuiz(raw);
+  return typeof quiz === "string" ? null : quiz;
+}
+
+// Upstash JSON-parses every value it reads and keeps the text if that fails.
+const upstash = (text: string): unknown => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+};
+
+describe("checkQuiz", () => {
+  it("accepts a valid quiz and trims its text", () => {
+    const quiz = parse({
+      personas: [" Owl ", "Fox"],
+      questions: [{ question: " Q? ", answers: { " Owl": " a ", Fox: "b" } }],
+    });
+    expect(quiz).toEqual({
+      personas: ["Owl", "Fox"],
+      questions: [{ question: "Q?", answers: { Owl: "a", Fox: "b" } }],
+    });
+    expect(parse(STARTER)).toEqual(STARTER);
+  });
+  it("rejects __proto__ as a persona in any case", () => {
+    for (const name of ["__proto__", "__PROTO__", " __Proto__ "])
+      expect(checkQuiz({ ...small, personas: [name, "Fox", "Bee"] })).toBe(
+        "Give each persona a name other than __proto__.",
+      );
+  });
+  it("accepts names Upstash would parse as JSON", () => {
+    const personas = ["null", '"x"', "[1]"];
+    const answers = { null: "a", '"x"': "b", "[1]": "c" };
+    const quiz = parse({ personas, questions: [{ question: "Q", answers }] });
+    expect(quiz?.personas).toEqual(personas);
+  });
+  it("rejects too few or too many personas", () => {
+    expect(parse({ ...small, personas: ["Owl"] })).toBeNull();
+    const seven = ["a", "b", "c", "d", "e", "f", "g"];
+    expect(checkQuiz({ ...small, personas: seven })).toBe(
+      "Add 2 to 6 personas.",
+    );
+  });
+  it("rejects duplicate personas, ignoring case and spaces", () => {
+    expect(checkQuiz({ ...small, personas: ["Owl", "owl ", "Bee"] })).toBe(
+      "Give each persona a different name.",
+    );
+  });
+  it("rejects a missing, empty or extra answer", () => {
+    const missing = {
+      ...small,
+      questions: [{ question: "Q", answers: { Owl: "a", Fox: "b" } }],
+    };
+    expect(checkQuiz(missing)).toMatch(/^Question 1: write an answer/);
+    const empty = {
+      ...small,
+      questions: [{ question: "Q", answers: { Owl: "a", Fox: " ", Bee: "c" } }],
+    };
+    expect(parse(empty)).toBeNull();
+    const extra = {
+      ...small,
+      questions: [
+        { question: "Q", answers: { Owl: "a", Fox: "b", Bee: "c", Cat: "d" } },
+      ],
+    };
+    expect(parse(extra)).toBeNull();
+  });
+  it("rejects text that is too long and question counts out of range", () => {
+    expect(
+      checkQuiz({ ...small, personas: ["x".repeat(25), "Fox", "Bee"] }),
+    ).toBe("Give each persona a name of 1 to 24 characters.");
+    const longQ = { ...small.questions[0], question: "q".repeat(161) };
+    expect(checkQuiz({ ...small, questions: [longQ] })).toBe(
+      "Question 1: write 1 to 160 characters.",
+    );
+    const longA = {
+      question: "Q",
+      answers: { Owl: "a".repeat(101), Fox: "b", Bee: "c" },
+    };
+    expect(parse({ ...small, questions: [longA] })).toBeNull();
+    expect(checkQuiz({ ...small, questions: [] })).toBe(
+      "Add 1 to 8 questions.",
+    );
+    const nine = Array.from({ length: 9 }, () => small.questions[0]);
+    expect(parse({ ...small, questions: nine })).toBeNull();
+    expect(parse(null)).toBeNull();
+    expect(parse("quiz")).toBeNull();
+  });
+});
+
+describe("scorePersona", () => {
+  it("picks the persona with most answers in a custom quiz", () => {
+    const three = {
+      ...small,
+      questions: [...small.questions, small.questions[0]],
+    };
+    expect(scorePersona(["Bee", "Fox", "Bee"], three)).toBe("Bee");
+  });
+  it("breaks a tie by persona order", () => {
+    expect(scorePersona(["Bee", "Fox"], small)).toBe("Fox");
+    expect(
+      scorePersona(
+        ["Developer", "Developer", "Researcher", "Researcher", "Idea"],
+        STARTER,
+      ),
+    ).toBe("Researcher");
+  });
+  it("rejects incomplete answers or personas from another quiz", () => {
+    expect(scorePersona(["Owl"], small)).toBeNull();
+    expect(scorePersona(["Owl", "Idea"], small)).toBeNull();
+    expect(scorePersona(["Owl", 1], small)).toBeNull();
+  });
+});
+
+const saved = { ...small, v: "1760000000000" };
+
+describe("roomQuiz", () => {
+  it("is the starter quiz when nothing is stored", () => {
+    expect(roomQuiz(null)).toEqual({
+      mode: "starter",
+      quiz: STARTER,
+      v: "starter",
+    });
+  });
+  it("is off with no custom quiz for the off marker", () => {
+    expect(roomQuiz(QUIZ_OFF)).toEqual({
+      mode: "off",
+      quiz: null,
+      v: "off",
+    });
+  });
+  it("reads a custom quiz as an object or as JSON text", () => {
+    const want = {
+      mode: "custom",
+      quiz: small,
+      v: "1760000000000",
+    };
+    expect(roomQuiz({ ...small, v: 1760000000000 })).toEqual(want);
+    expect(roomQuiz(JSON.stringify(saved))).toEqual(want);
+  });
+  it("hides a custom quiz that is off but keeps it for the admin", () => {
+    const off = { ...saved, off: true };
+    const quiz = roomQuiz(off);
+    expect(quiz).toEqual({
+      mode: "off",
+      quiz: null,
+      v: "off-1760000000000",
+    });
+    expect(quiz.v).not.toBe(roomQuiz(saved).v);
+    expect(adminQuiz(off).saved).toEqual({ ...small, v: saved.v, off: true });
+    expect(adminQuiz(null).saved).toBeNull();
+  });
+  it("falls back to the starter quiz for bad data", () => {
+    expect(roomQuiz({ ...small }).mode).toBe("starter");
+    expect(roomQuiz({ personas: ["x"], questions: [], v: 1 }).mode).toBe(
+      "starter",
+    );
+    expect(roomQuiz("{not json").mode).toBe("starter");
+  });
+});
+
+describe("nextStored", () => {
+  it("turns the starter quiz off and on", () => {
+    expect(nextStored("off", null)).toBe(QUIZ_OFF);
+    expect(nextStored("on", QUIZ_OFF)).toBeNull();
+    expect(nextStored("on", null)).toBeNull();
+  });
+  it("keeps a custom quiz while it is off and brings it back on", () => {
+    const off = nextStored("off", saved);
+    expect(off).toEqual({ ...saved, off: true });
+    expect(nextStored("off", off)).toEqual(off);
+    const on = nextStored("on", off);
+    expect(on).toEqual(saved);
+    expect(roomQuiz(on)).toEqual(roomQuiz(saved));
+  });
+  it("starter deletes any stored quiz", () => {
+    expect(nextStored("starter", saved)).toBeNull();
+    expect(nextStored("starter", { ...saved, off: true })).toBeNull();
+    expect(nextStored("starter", QUIZ_OFF)).toBeNull();
+  });
+  it("changes v on every off and on", () => {
+    const vs = [saved, nextStored("off", saved), QUIZ_OFF, null].map(
+      (x) => roomQuiz(x).v,
+    );
+    expect(new Set(vs).size).toBe(vs.length);
+  });
+});
+
+describe("tallyFor", () => {
+  it("counts each persona in order and ignores other keys", () => {
+    expect(tallyFor(["Owl", "Fox"], { Fox: "2", Bee: 5 })).toEqual({
+      Owl: 0,
+      Fox: 2,
+    });
+    expect(tallyFor(["constructor"], {})).toEqual({ constructor: 0 });
+    expect(tallyFor(["Owl"], null)).toEqual({ Owl: 0 });
+  });
+});
+
+describe("storedPersona", () => {
+  it("reads prefixed names back as the same text", () => {
+    for (const name of ["null", '"x"', "[1]", "2024", "true", "Idea"]) {
+      expect(storedPersona(upstash(PERSONA_PREFIX + name))).toBe(name);
+    }
+    // Without the prefix these would come back as other values.
+    expect(upstash("null")).toBeNull();
+    expect(upstash('"x"')).toBe("x");
+  });
+  it("reads old values without a prefix and missing values", () => {
+    expect(storedPersona("Idea")).toBe("Idea");
+    expect(storedPersona(null)).toBeNull();
+    expect(storedPersona(undefined)).toBeNull();
+  });
+});
